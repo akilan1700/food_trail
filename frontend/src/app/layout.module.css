@@ -1,0 +1,103 @@
+/*
+File: src/app/layout.module.css
+Description: CSS modules for main layout wrapper, responsive navigation bar, and footer.
+Author: Akilan M
+Created: 2026-08-11T17:42:10+05:30
+*/
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: var(--glass-border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.brandHighlight {
+  color: var(--accent-color);
+}
+
+.nav {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--border-radius-sm);
+  transition: var(--transition-smooth);
+}
+
+.navLink:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-tertiary);
+}
+
+.navLinkActive {
+  color: var(--text-primary);
+  background-color: var(--accent-light);
+  border-bottom: 2px solid var(--accent-color);
+}
+
+.main {
+  flex-grow: 1;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer {
+  padding: 2rem 1.5rem;
+  text-align: center;
+  border-top: var(--glass-border);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  background-color: var(--bg-secondary);
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .nav {
+    width: 100%;
+    justify-content: space-around;
+    gap: 0.5rem;
+  }
+  
+  .navLink {
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    padding: 0.35rem;
+  }
+}

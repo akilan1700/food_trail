@@ -8,37 +8,7 @@
 
 import { useState, useEffect } from 'react';
 
-interface Restaurant {
-  _id: string;
-  name: string;
-  description: string;
-  address: string;
-  area: string;
-  vibeTags: string[];
-  busyStatus: 'Plenty of Tables' | 'Filling Up' | '~15 Min Wait' | 'Closed';
-  rating: number;
-  photoUrl?: string;
-}
-
-interface Stop {
-  _id: string;
-  order: number;
-  restaurantId: Restaurant;
-  description: string;
-}
-
-interface Trail {
-  _id: string;
-  name: string;
-  description: string;
-  estimatedDuration: number;
-  distance: number;
-  area: string;
-  photoUrl?: string;
-  stops: Stop[];
-}
-
-const API_BASE = 'http://localhost:5001/api';
+import { Trail, getTrails, getTrailDetails, updateBusyStatus } from '../services/api';
 
 export default function TrailsPage() {
   const [trails, setTrails] = useState<Trail[]>([]);
@@ -49,14 +19,11 @@ export default function TrailsPage() {
   const fetchTrails = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/trails`);
-      if (res.ok) {
-        const data = await res.json();
-        setTrails(data);
-        // Default to select first trail if available
-        if (data.length > 0) {
-          fetchTrailDetails(data[0]._id);
-        }
+      const data = await getTrails();
+      setTrails(data);
+      // Default to select first trail if available
+      if (data.length > 0) {
+        fetchTrailDetails(data[0]._id);
       }
     } catch (error) {
       console.error('Error fetching trails:', error);
@@ -68,11 +35,8 @@ export default function TrailsPage() {
   const fetchTrailDetails = async (id: string) => {
     setDetailLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/trails/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedTrail(data);
-      }
+      const data = await getTrailDetails(id);
+      setSelectedTrail(data);
     } catch (error) {
       console.error('Error fetching trail detail:', error);
     } finally {
@@ -114,19 +78,10 @@ export default function TrailsPage() {
   // Simulate updating live busy status of a restaurant
   const handleUpdateBusyStatus = async (restaurantId: string, newStatus: string) => {
     try {
-      const res = await fetch(`${API_BASE}/restaurants/${restaurantId}/busy-status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ busyStatus: newStatus }),
-      });
-
-      if (res.ok) {
-        // Refresh details to show updated status
-        if (selectedTrail) {
-          fetchTrailDetails(selectedTrail._id);
-        }
+      await updateBusyStatus(restaurantId, newStatus);
+      // Refresh details to show updated status
+      if (selectedTrail) {
+        fetchTrailDetails(selectedTrail._id);
       }
     } catch (error) {
       console.error('Failed to update simulated busy status:', error);

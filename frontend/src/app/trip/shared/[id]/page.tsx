@@ -10,25 +10,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-interface Restaurant {
-  _id: string;
-  name: string;
-  description: string;
-  address: string;
-  area: string;
-  vibeTags: string[];
-  busyStatus: 'Plenty of Tables' | 'Filling Up' | '~15 Min Wait' | 'Closed';
-  rating: number;
-  photoUrl?: string;
-}
-
-interface SavedTrip {
-  _id: string;
-  shareId: string;
-  restaurantIds: Restaurant[];
-}
-
-const API_BASE = 'http://localhost:5001/api';
+import { SavedTrip, getSharedTrip } from '../../../services/api';
 
 export default function SharedTripViewPage() {
   const { id } = useParams();
@@ -41,16 +23,13 @@ export default function SharedTripViewPage() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const res = await fetch(`${API_BASE}/trips/${id}`);
-      if (res.ok) {
-        const data = await res.json();
+      if (typeof id === 'string') {
+        const data = await getSharedTrip(id);
         setTrip(data);
-      } else {
-        setErrorMsg('This shared food trail could not be found. It may have expired or been removed.');
       }
     } catch (error) {
       console.error('Error fetching shared trip:', error);
-      setErrorMsg('Could not connect to the server to load the shared trail.');
+      setErrorMsg('This shared food trail could not be found or could not connect to server.');
     } finally {
       setLoading(false);
     }

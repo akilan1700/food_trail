@@ -8,30 +8,8 @@
 
 import { useState, useEffect } from 'react';
 
-interface Restaurant {
-  _id: string;
-  name: string;
-  description: string;
-  address: string;
-  area: string;
-  vibeTags: string[];
-  busyStatus: 'Plenty of Tables' | 'Filling Up' | '~15 Min Wait' | 'Closed';
-  rating: number;
-  photoUrl?: string;
-}
+import { Dish, getDishes, searchDishes } from './services/api';
 
-interface Dish {
-  _id: string;
-  name: string;
-  description: string;
-  price: number;
-  photoUrl?: string;
-  restaurantId: Restaurant;
-  rating: number;
-  isSignature?: boolean;
-}
-
-const API_BASE = 'http://localhost:5001/api';
 const AVAILABLE_VIBES = [
   'Pet-friendly',
   'Laptop-friendly',
@@ -55,13 +33,10 @@ export default function HomePage() {
   const fetchFeaturedDishes = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/dishes`);
-      if (res.ok) {
-        const data = await res.json();
-        // Initially show top 6 rated dishes
-        const sorted = data.sort((a: Dish, b: Dish) => b.rating - a.rating).slice(0, 6);
-        setDishes(sorted);
-      }
+      const data = await getDishes();
+      // Initially show top 6 rated dishes
+      const sorted = data.sort((a: Dish, b: Dish) => b.rating - a.rating).slice(0, 6);
+      setDishes(sorted);
     } catch (error) {
       console.error('Failed to fetch initial dishes:', error);
     } finally {
@@ -75,20 +50,8 @@ export default function HomePage() {
     setLoading(true);
 
     try {
-      const url = `${API_BASE}/dishes/search?`;
-      const params = new URLSearchParams();
-      if (searchQuery.trim()) {
-        params.append('q', searchQuery.trim());
-      }
-      if (selectedVibes.length > 0) {
-        params.append('vibe', selectedVibes.join(','));
-      }
-      
-      const res = await fetch(url + params.toString());
-      if (res.ok) {
-        const data = await res.json();
-        setDishes(data);
-      }
+      const data = await searchDishes(searchQuery, selectedVibes);
+      setDishes(data);
     } catch (error) {
       console.error('Error executing search:', error);
     } finally {

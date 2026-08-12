@@ -9,19 +9,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-interface Restaurant {
-  _id: string;
-  name: string;
-  description: string;
-  address: string;
-  area: string;
-  vibeTags: string[];
-  busyStatus: 'Plenty of Tables' | 'Filling Up' | '~15 Min Wait' | 'Closed';
-  rating: number;
-  photoUrl?: string;
-}
-
-const API_BASE = 'http://localhost:5001/api';
+import { Restaurant, getRestaurants, createSharedTrip } from '../services/api';
 
 export default function MyTripPage() {
   const [savedRestaurants, setSavedRestaurants] = useState<Restaurant[]>([]);
@@ -45,15 +33,12 @@ export default function MyTripPage() {
 
       if (parsedIds.length > 0) {
         // Fetch all restaurants and filter to match saved IDs
-        const res = await fetch(`${API_BASE}/restaurants`);
-        if (res.ok) {
-          const allRestaurants = (await res.json()) as Restaurant[];
-          // Maintain the order of saved IDs
-          const matched = parsedIds
-            .map((id) => allRestaurants.find((r) => r._id === id))
-            .filter((r): r is Restaurant => !!r);
-          setSavedRestaurants(matched);
-        }
+        const allRestaurants = await getRestaurants();
+        // Maintain the order of saved IDs
+        const matched = parsedIds
+          .map((id) => allRestaurants.find((r) => r._id === id))
+          .filter((r): r is Restaurant => !!r);
+        setSavedRestaurants(matched);
       } else {
         setSavedRestaurants([]);
       }
@@ -92,32 +77,18 @@ export default function MyTripPage() {
     setShareLink('');
 
     try {
-      const res = await fetch(`${API_BASE}/trips`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          restaurantIds: savedRestIds,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const generatedLink = `${window.location.origin}/trip/shared/${data.shareId}`;
-        setShareLink(generatedLink);
-        
-        // Trigger WhatsApp redirection with pre-filled message
-        const text = encodeURIComponent(
-          `Hey! Check out my walkable Food Trail route in Puducherry: ${generatedLink}`
-        );
-        window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
-      } else {
-        alert('Failed to generate share link. Please try again.');
-      }
+      const data = await createSharedTrip(savedRestIds);
+      const generatedLink = `${window.location.origin}/trip/shared/${data.shareId}`;
+      setShareLink(generatedLink);
+      
+      // Trigger WhatsApp redirection with pre-filled message
+      const text = encodeURIComponent(
+        `Hey! Check out my walkable Food Trail route in Puducherry: ${generatedLink}`
+      );
+      window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
     } catch (error) {
       console.error('Error sharing trip:', error);
-      alert('Error connecting to backend server.');
+      alert('Error connecting to backend server or generating share link.');
     } finally {
       setShareLoading(false);
     }

@@ -1,60 +1,63 @@
 /*
 File: src/app/globals.css
-Description: Core design system styling tokens, utilities, and global animation keyframes.
+Description: Core design system styling using Tailwind CSS v4, custom theme configuration, and utilities.
 Author: Akilan M
 Created: 2026-08-11T17:41:47+05:30
 */
 
-:root {
-  /* Theme Colors */
-  --bg-primary: #0b0f19;
-  --bg-secondary: #111827;
-  --bg-tertiary: #1f2937;
+@import "tailwindcss";
+
+@theme {
+  /* Theme Colors mapped to Tailwind v4 theme variables */
+  --color-bg-primary: #0b0f19;
+  --color-bg-secondary: #111827;
+  --color-bg-tertiary: #1f2937;
   
-  --text-primary: #f9fafb;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  --color-text-primary: #f9fafb;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted: #6b7280;
 
-  --accent-color: #f43f5e; /* Rose / Neon Coral */
-  --accent-hover: #e11d48;
-  --accent-light: rgba(244, 63, 94, 0.15);
+  --color-accent: #f43f5e; /* Rose / Neon Coral */
+  --color-accent-hover: #e11d48;
+  --color-accent-light: rgba(244, 63, 94, 0.15);
 
-  --rating-color: #f59e0b; /* Amber */
+  --color-rating: #f59e0b; /* Amber */
 
   /* Live Busy Status Colors */
-  --status-green: #10b981;  /* Plenty of Tables */
-  --status-orange: #f97316; /* Filling Up */
-  --status-red: #ef4444;    /* ~15 Min Wait */
+  --color-status-green: #10b981;  /* Plenty of Tables */
+  --color-status-orange: #f97316; /* Filling Up */
+  --color-status-red: #ef4444;    /* ~15 Min Wait */
 
-  /* Layout and Sizing */
-  --border-radius-sm: 8px;
-  --border-radius-md: 16px;
-  --border-radius-lg: 24px;
-  
-  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+  --animate-fade-in: fadeIn 0.4s ease-out forwards;
+  --animate-status-pulse: status-pulse 2s infinite ease-in-out;
+  --animate-pulse-glow: pulse-glow 2s infinite ease-in-out;
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse-glow {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7); }
+    70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
+  }
+
+  @keyframes status-pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+  }
 }
 
-/* Base Styles */
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
+/* Base style extensions */
 html, body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
 }
 
 /* Scrollbar styling */
@@ -62,65 +65,42 @@ a {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: var(--color-bg-primary);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-tertiary);
-  border-radius: var(--border-radius-sm);
+  background: var(--color-bg-tertiary);
+  border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-color);
+  background: var(--color-accent);
 }
 
-/* Global Micro-Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse-glow {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7); }
-  70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
-}
-
-@keyframes status-pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
-
-/* Glassmorphism Classes */
-.glass-panel {
+/* Custom Tailwind v4 Utilities */
+@utility glass-panel {
   background: rgba(17, 24, 39, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: var(--glass-border);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--glass-shadow);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-.glass-card {
+@utility glass-card {
   background: rgba(31, 41, 55, 0.4);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: var(--glass-border);
-  border-radius: var(--border-radius-md);
-  transition: var(--transition-smooth);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.glass-card:hover {
+@utility glass-card:hover {
   background: rgba(31, 41, 55, 0.6);
   transform: translateY(-4px);
   border-color: rgba(244, 63, 94, 0.3);
 }
 
-/* Utilities */
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-.status-dot {
+@utility status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -128,6 +108,25 @@ a {
   animation: status-pulse 2s infinite ease-in-out;
 }
 
-.status-dot.green { background-color: var(--status-green); box-shadow: 0 0 8px var(--status-green); }
-.status-dot.orange { background-color: var(--status-orange); box-shadow: 0 0 8px var(--status-orange); }
-.status-dot.red { background-color: var(--status-red); box-shadow: 0 0 8px var(--status-red); }
+@utility status-dot-green {
+  background-color: var(--color-status-green);
+  box-shadow: 0 0 8px var(--color-status-green);
+}
+
+@utility status-dot-orange {
+  background-color: var(--color-status-orange);
+  box-shadow: 0 0 8px var(--color-status-orange);
+}
+
+@utility status-dot-red {
+  background-color: var(--color-status-red);
+  box-shadow: 0 0 8px var(--color-status-red);
+}
+
+@utility animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@utility animate-pulse-glow {
+  animation: pulse-glow 2s infinite ease-in-out;
+}

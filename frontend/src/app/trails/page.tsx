@@ -7,7 +7,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import styles from './trails.module.css';
 
 interface Restaurant {
   _id: string;
@@ -136,58 +135,58 @@ export default function TrailsPage() {
 
   const getStatusDotClass = (status: string) => {
     switch (status) {
-      case 'Plenty of Tables': return 'green';
-      case 'Filling Up': return 'orange';
-      case '~15 Min Wait': return 'red';
-      default: return 'red';
+      case 'Plenty of Tables': return 'status-dot-green';
+      case 'Filling Up': return 'status-dot-orange';
+      case '~15 Min Wait': return 'status-dot-red';
+      default: return 'status-dot-red';
     }
   };
 
   return (
-    <div className={styles.container}>
-      <section className={styles.header}>
-        <h1 className={styles.title}>Walkable Food Trails</h1>
-        <p className={styles.subtitle}>Explore Puducherry&apos;s heritage French streets &amp; organic eco-cafes on foot.</p>
+    <div className="max-w-[900px] mx-auto animate-fade-in">
+      <section className="text-center my-8 md:my-12">
+        <h1 className="text-[2.25rem] font-extrabold mb-2">Walkable Food Trails</h1>
+        <p className="text-text-secondary">Explore Puducherry&apos;s heritage French streets &amp; organic eco-cafes on foot.</p>
       </section>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <div className="status-dot green" style={{ width: 16, height: 16 }}></div>
+          <div className="status-dot status-dot-green" style={{ width: 16, height: 16 }}></div>
           <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>Loading trails...</p>
         </div>
       ) : (
         <>
-          <div className={styles.list}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
             {trails.map((trail) => {
               const isActive = selectedTrail?._id === trail._id;
               return (
                 <div
                   key={trail._id}
-                  className={`${styles.trailCard} glass-card ${isActive ? 'animate-pulse-glow' : ''}`}
+                  className={`overflow-hidden cursor-pointer glass-card ${isActive ? 'animate-pulse-glow' : ''}`}
                   onClick={() => fetchTrailDetails(trail._id)}
-                  style={isActive ? { borderColor: 'var(--accent-color)' } : {}}
+                  style={isActive ? { borderColor: 'var(--color-accent)' } : {}}
                 >
-                  <div className={styles.imageWrapper}>
+                  <div className="h-[180px] relative bg-bg-tertiary">
                     {trail.photoUrl && (
                       <img
                         src={trail.photoUrl}
                         alt={trail.name}
-                        className={styles.trailImage}
+                        className="w-full h-full object-cover"
                       />
                     )}
-                    <span className={styles.trailArea}>{trail.area}</span>
-                    <span className={styles.trailMeta}>
+                    <span className="absolute bottom-4 left-4 bg-bg-primary/85 backdrop-blur-sm px-2.5 py-1 rounded-sm text-[0.75rem] font-semibold border border-white/8">{trail.area}</span>
+                    <span className="absolute top-4 right-4 bg-accent text-white px-2.5 py-1 rounded-sm text-[0.75rem] font-bold shadow-[0_4px_8px_rgba(244,63,94,0.3)]">
                       🚶 {trail.estimatedDuration} Min Walk
                     </span>
                   </div>
-                  <div className={styles.cardContent}>
-                    <h3 className={styles.trailName}>{trail.name}</h3>
-                    <p className={styles.trailDesc}>{trail.description}</p>
-                    <div className={styles.statsRow}>
-                      <div className={styles.statItem}>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold mb-2 text-text-primary">{trail.name}</h3>
+                    <p className="text-sm text-text-secondary leading-relaxed mb-4">{trail.description}</p>
+                    <div className="flex gap-6 text-[0.85rem] text-text-muted">
+                      <div className="flex items-center gap-1.5">
                         <span>📏 {(trail.distance / 1000).toFixed(1)} km</span>
                       </div>
-                      <div className={styles.statItem}>
+                      <div className="flex items-center gap-1.5">
                         <span>☕ {trail.stops?.length || 0} stops</span>
                       </div>
                     </div>
@@ -198,42 +197,42 @@ export default function TrailsPage() {
           </div>
 
           {selectedTrail && (
-            <div className={styles.detailSection}>
+            <div className="mt-12 p-8 rounded-lg border border-white/8 bg-bg-secondary/50 animate-fade-in">
               {detailLoading ? (
                 <div style={{ textAlign: 'center', padding: '3rem' }}>
-                  <div className="status-dot green" style={{ width: 16, height: 16 }}></div>
+                  <div className="status-dot status-dot-green" style={{ width: 16, height: 16 }}></div>
                   <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>Loading trail path details...</p>
                 </div>
               ) : (
                 <>
-                  <div className={styles.detailHeader}>
+                  <div className="flex justify-between items-start mb-8 border-b border-white/8 pb-6 gap-4 flex-col sm:flex-row">
                     <div>
-                      <h2 className={styles.detailTitle}>{selectedTrail.name}</h2>
-                      <p className={styles.detailDesc}>{selectedTrail.description}</p>
+                      <h2 className="text-[1.75rem] font-extrabold mb-2">{selectedTrail.name}</h2>
+                      <p className="text-text-secondary text-[0.95rem] leading-relaxed max-w-[600px]">{selectedTrail.description}</p>
                     </div>
                     <button
                       type="button"
-                      className={styles.saveTrailButton}
+                      className="bg-accent text-white border-none rounded-sm px-5 py-3 font-semibold cursor-pointer transition-all duration-300 flex items-center gap-2 shrink-0 hover:bg-accent-hover"
                       onClick={handleSaveTrailRestaurants}
                     >
                       ⭐ Save Route Stops
                     </button>
                   </div>
 
-                  <div className={styles.mapAndTimeline}>
-                    <div className={styles.timeline}>
+                  <div className="grid grid-cols-1 gap-8">
+                    <div className="flex flex-col gap-6 relative pl-8 before:content-[''] before:absolute before:left-[7px] before:top-6 before:bottom-6 before:w-[2px] before:bg-gradient-to-b before:from-accent before:to-bg-tertiary">
                       {selectedTrail.stops
                         .sort((a, b) => a.order - b.order)
                         .map((stop) => {
                           const rest = stop.restaurantId;
                           return (
-                            <div key={stop._id} className={styles.stopNode}>
-                              <div className={styles.stopMarker}></div>
+                            <div key={stop._id} className="relative bg-bg-tertiary/30 border border-white/8 rounded-md p-5">
+                              <div className="absolute -left-8 top-5 -translate-x-1/2 w-[18px] h-[18px] bg-bg-primary border-3 border-accent rounded-full z-10 shadow-[0_0_8px_var(--color-accent)]"></div>
                               
-                              <div className={styles.stopHeader}>
+                              <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
                                 <div>
-                                  <span className={styles.stopOrder}>Stop {stop.order}</span>
-                                  <h4 className={styles.stopTitle}>{rest.name}</h4>
+                                  <span className="text-[0.75rem] font-bold uppercase text-accent tracking-wider">Stop {stop.order}</span>
+                                  <h4 className="text-[1.15rem] font-bold text-text-primary">{rest.name}</h4>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                   <div className="status-dot-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem' }}>
@@ -243,17 +242,17 @@ export default function TrailsPage() {
                                 </div>
                               </div>
 
-                              <p className={styles.stopDesc}>{stop.description}</p>
+                              <p className="text-sm text-text-secondary mb-4 leading-relaxed">{stop.description}</p>
 
-                              <div className={styles.stopMeta}>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                              <div className="flex justify-between items-center border-t border-white/5 pt-3 flex-wrap gap-2">
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                   📍 {rest.address}
                                 </span>
 
-                                <div className={styles.simSection}>
-                                  <span className={styles.simLabel}>Simulate Status:</span>
+                                <div className="flex items-center gap-2 text-[0.8rem]">
+                                  <span className="text-text-muted">Simulate Status:</span>
                                   <select
-                                    className={styles.simSelect}
+                                    className="bg-bg-tertiary text-text-primary border border-white/10 rounded px-2 py-1 text-[0.8rem] outline-none cursor-pointer"
                                     value={rest.busyStatus}
                                     onChange={(e) => handleUpdateBusyStatus(rest._id, e.target.value)}
                                   >

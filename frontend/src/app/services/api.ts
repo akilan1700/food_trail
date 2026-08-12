@@ -125,13 +125,13 @@ export async function getRestaurants(): Promise<Restaurant[]> {
 /**
  * Create a saved trip in the database to generate a share ID.
  */
-export async function createSharedTrip(restaurantIds: string[]): Promise<{ shareId: string }> {
+export async function createSharedTrip(restaurantIds: string[], trailId?: string): Promise<{ shareId: string }> {
   return apiRequest<{ shareId: string }>('/trips', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ restaurantIds }),
+    body: JSON.stringify({ restaurantIds, trailId }),
   });
 }
 
@@ -140,4 +140,107 @@ export async function createSharedTrip(restaurantIds: string[]): Promise<{ share
  */
 export async function getSharedTrip(id: string): Promise<SavedTrip> {
   return apiRequest<SavedTrip>(`/trips/${id}`);
+}
+
+/**
+ * Formats a given photo URL. If it is a Google Drive file ID,
+ * it returns the direct content download URL. Otherwise, returns the original URL.
+ */
+export function formatPhotoUrl(url: string | undefined): string {
+  if (!url) return 'https://images.unsplash.com/photo-1498804103079-a6351b050096?w=600'; // Default fallback
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  if (url.startsWith('/uploads/')) {
+    const backendBase = API_BASE.replace(/\/api$/, '');
+    return `${backendBase}${url}`;
+  }
+  return `https://docs.google.com/uc?export=download&id=${url}`;
+}
+
+/**
+ * Uploads an image file to the Express backend (which uploads to Google Drive).
+ */
+export async function uploadImage(file: File): Promise<{ success: boolean; fileId: string }> {
+  const formData = new FormData();
+  formData.append('photo', file);
+
+  const url = `${API_BASE}/upload`;
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json() as Promise<{ success: boolean; fileId: string }>;
+}
+
+/**
+ * Update a restaurant's photo URL (Google Drive File ID).
+ */
+export async function updateRestaurantPhoto(id: string, photoUrl: string): Promise<Restaurant> {
+  return apiRequest<Restaurant>(`/restaurants/${id}/photo`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ photoUrl }),
+  });
+}
+
+/**
+ * Create a new walking food trail.
+ */
+export async function createTrail(trailData: Partial<Trail>): Promise<Trail> {
+  return apiRequest<Trail>('/trails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(trailData),
+  });
+}
+
+/**
+ * Create a new restaurant.
+ */
+export async function createRestaurant(restaurantData: {
+  name: string;
+  description?: string;
+  address?: string;
+  area: string;
+  coordinates: number[];
+  vibeTags?: string[];
+  photoUrl?: string;
+}): Promise<Restaurant> {
+  return apiRequest<Restaurant>('/restaurants', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(restaurantData),
+  });
+}
+
+/**
+ * Create a new dish.
+ */
+export async function createDish(dishData: {
+  name: string;
+  description?: string;
+  price: number;
+  photoUrl?: string;
+  restaurantId: string;
+  isSignature?: boolean;
+}): Promise<Dish> {
+  return apiRequest<Dish>('/dishes', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(dishData),
+  });
 }

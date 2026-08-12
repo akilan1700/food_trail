@@ -9,39 +9,58 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-import { Restaurant, getRestaurants, createSharedTrip } from '../services/api';
+import { useAppDispatch, useAppSelector } from '../services/hooks';
+import { selectSavedRestIds, selectSavedTrailId, setSavedTrailId, removeRestaurant, clearTrip } from '../services/tripSlice';
+import { Restaurant, Trail, getRestaurants, getTrailDetails, createSharedTrip, formatPhotoUrl, updateRestaurantPhoto } from '../services/api';
+import { Trash2, MessageCircle, MapPin, Star, Bookmark, Camera, PlusCircle } from 'lucide-react';
+import PhotoUpload from '../components/PhotoUpload';
+import AddDishModal from '../components/AddDishModal';
 
 export default function MyTripPage() {
+  const dispatch = useAppDispatch();
+  const savedRestIds = useAppSelector(selectSavedRestIds);
+  const savedTrailId = useAppSelector(selectSavedTrailId);
   const [savedRestaurants, setSavedRestaurants] = useState<Restaurant[]>([]);
-  const [savedRestIds, setSavedRestIds] = useState<string[]>([]);
+  const [parentTrail, setParentTrail] = useState<Trail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editingPhotoRestId, setEditingPhotoRestId] = useState<string | null>(null);
+  const [selectedAddDishRest, setSelectedAddDishRest] = useState<{ id: string; name: string } | null>(null);
   
   const [shareLink, setShareLink] = useState('');
   const [shareLoading, setShareLoading] = useState(false);
 
+  // Fetch parent trail details if trail ID is saved
+  useEffect(() => {
+    const fetchParentTrail = async () => {
+      if (!savedTrailId) {
+        setParentTrail(null);
+        return;
+      }
+      try {
+        const data = await getTrailDetails(savedTrailId);
+        setParentTrail(data);
+      } catch (err) {
+        console.error('Failed to load parent trail details:', err);
+      }
+    };
+    fetchParentTrail();
+  }, [savedTrailId]);
+
   const loadSavedTripData = async () => {
-    setLoading(true);
-    const saved = localStorage.getItem('foodtrail_saved_trip');
-    if (!saved) {
+    if (savedRestIds.length === 0) {
+      setSavedRestaurants([]);
       setLoading(false);
       return;
     }
-
+    setLoading(true);
     try {
-      const parsedIds = JSON.parse(saved) as string[];
-      setSavedRestIds(parsedIds);
-
-      if (parsedIds.length > 0) {
-        // Fetch all restaurants and filter to match saved IDs
-        const allRestaurants = await getRestaurants();
-        // Maintain the order of saved IDs
-        const matched = parsedIds
-          .map((id) => allRestaurants.find((r) => r._id === id))
-          .filter((r): r is Restaurant => !!r);
-        setSavedRestaurants(matched);
-      } else {
-        setSavedRestaurants([]);
-      }
+      // Fetch all restaurants and filter to match saved IDs
+      const allRestaurants = await getRestaurants();
+      // Maintain the order of saved IDs
+      const matched = savedRestIds
+        .map((id) => allRestaurants.find((r) => r._id === id))
+        .filter((r): r is Restaurant => !!r);
+      setSavedRestaurants(matched);
     } catch (error) {
       console.error('Error loading saved trip details:', error);
     } finally {
@@ -51,21 +70,17 @@ export default function MyTripPage() {
 
   useEffect(() => {
     loadSavedTripData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedRestIds]);
 
   const handleRemove = (restaurantId: string) => {
-    const updatedIds = savedRestIds.filter((id) => id !== restaurantId);
-    setSavedRestIds(updatedIds);
-    setSavedRestaurants((prev) => prev.filter((r) => r._id !== restaurantId));
-    localStorage.setItem('foodtrail_saved_trip', JSON.stringify(updatedIds));
+    dispatch(removeRestaurant(restaurantId));
     setShareLink(''); // Reset share link as list changed
   };
 
   const handleClear = () => {
     if (window.confirm('Are you sure you want to clear your saved food trail?')) {
-      localStorage.removeItem('foodtrail_saved_trip');
-      setSavedRestIds([]);
-      setSavedRestaurants([]);
+      dispatch(clearTrip());
       setShareLink('');
     }
   };
@@ -77,7 +92,7 @@ export default function MyTripPage() {
     setShareLink('');
 
     try {
-      const data = await createSharedTrip(savedRestIds);
+      const data = await createSharedTrip(savedRestIds, savedTrailId || undefined);
       const generatedLink = `${window.location.origin}/trip/shared/${data.shareId}`;
       setShareLink(generatedLink);
       
@@ -123,13 +138,37 @@ export default function MyTripPage() {
         </div>
       ) : savedRestaurants.length > 0 ? (
         <>
+          {parentTrail && (
+            <div className="mb-8 p-5 rounded-md border border-white/8 bg-bg-secondary/40 flex gap-5 items-center flex-col sm:flex-row glass-panel animate-fade-in">
+              {parentTrail.photoUrl && (
+                <img
+                  src={formatPhotoUrl(parentTrail.photoUrl)}
+                  alt={parentTrail.name}
+                  className="w-full sm:w-[120px] h-[80px] object-cover rounded-sm shrink-0 bg-bg-tertiary"
+                />
+              )}
+              <div className="flex-grow text-left">
+                <span className="text-[0.7rem] bg-accent/15 text-accent px-2 py-0.5 rounded font-bold uppercase tracking-wider">Associated Walking Route</span>
+                <h3 className="text-lg font-bold text-text-primary mt-1">{parentTrail.name}</h3>
+                <p className="text-xs text-text-secondary mt-1">{parentTrail.description}</p>
+              </div>
+              <button
+                type="button"
+                className="bg-transparent border border-white/10 text-text-muted hover:text-text-primary hover:border-white/20 rounded-sm px-4 py-2 text-xs font-semibold cursor-pointer transition-all duration-300 shrink-0"
+                onClick={() => dispatch(setSavedTrailId(null))}
+              >
+                Unlink Route
+              </button>
+            </div>
+          )}
           <div className="flex justify-end mb-8 gap-4 flex-col sm:flex-row">
             <button
               type="button"
-              className="bg-transparent text-text-secondary border border-white/10 rounded-sm px-5 py-3 font-semibold cursor-pointer transition-all duration-300 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500"
+              className="bg-transparent text-text-secondary border border-white/10 rounded-sm px-5 py-3 font-semibold cursor-pointer transition-all duration-300 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500 flex items-center justify-center gap-2"
               onClick={handleClear}
             >
-              Clear Route
+              <Trash2 className="w-4 h-4 shrink-0" />
+              <span>Clear Route</span>
             </button>
             <button
               type="button"
@@ -137,7 +176,8 @@ export default function MyTripPage() {
               onClick={handleGenerateShare}
               disabled={shareLoading}
             >
-              {shareLoading ? 'Generating...' : '💬 Share on WhatsApp'}
+              <MessageCircle className="w-4 h-4 shrink-0" />
+              <span>{shareLoading ? 'Generating...' : 'Share on WhatsApp'}</span>
             </button>
           </div>
 
@@ -170,7 +210,7 @@ export default function MyTripPage() {
                   
                   {rest.photoUrl && (
                     <img
-                      src={rest.photoUrl}
+                      src={formatPhotoUrl(rest.photoUrl)}
                       alt={rest.name}
                       className="w-full sm:w-[100px] h-[140px] sm:h-[100px] object-cover rounded-sm shrink-0 bg-bg-tertiary"
                     />
@@ -179,23 +219,47 @@ export default function MyTripPage() {
                   <div className="flex-grow w-full">
                     <div className="flex justify-between items-start mb-1 gap-4">
                       <h3 className="text-[1.15rem] font-bold">{rest.name}</h3>
-                      <button
-                        type="button"
-                        className="bg-transparent border-none text-text-muted cursor-pointer transition-all duration-300 p-1 text-[1.1rem] hover:text-red-500"
-                        onClick={() => handleRemove(rest._id)}
-                        title="Remove stop"
-                      >
-                        🗑️
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="bg-transparent border-none text-text-muted cursor-pointer transition-all duration-300 p-1 flex items-center justify-center hover:text-accent"
+                          onClick={() => setSelectedAddDishRest({ id: rest._id, name: rest.name })}
+                          title="Add Dish"
+                        >
+                          <PlusCircle className="w-4 h-4 shrink-0" />
+                        </button>
+                        <button
+                          type="button"
+                          className="bg-transparent border-none text-text-muted cursor-pointer transition-all duration-300 p-1 flex items-center justify-center hover:text-accent"
+                          onClick={() => setEditingPhotoRestId(editingPhotoRestId === rest._id ? null : rest._id)}
+                          title="Update photo"
+                        >
+                          <Camera className="w-4 h-4 shrink-0" />
+                        </button>
+                        <button
+                          type="button"
+                          className="bg-transparent border-none text-text-muted cursor-pointer transition-all duration-300 p-1 flex items-center justify-center hover:text-red-500"
+                          onClick={() => handleRemove(rest._id)}
+                          title="Remove stop"
+                        >
+                          <Trash2 className="w-4 h-4 shrink-0" />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex gap-6 text-[0.85rem] text-text-secondary mb-2">
-                      <span>📍 {rest.area}</span>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                        <span>{rest.area}</span>
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}>
                         <span className={`status-dot ${getStatusDotClass(rest.busyStatus)}`}></span>
                         <span>{rest.busyStatus}</span>
                       </div>
-                      <span>★ {rest.rating}</span>
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3.5 h-3.5 fill-rating text-rating shrink-0" />
+                        <span>{rest.rating}</span>
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap gap-1.5">
@@ -205,6 +269,24 @@ export default function MyTripPage() {
                         </span>
                       ))}
                     </div>
+
+                    {editingPhotoRestId === rest._id && (
+                      <div className="mt-4 border-t border-white/5 pt-4 animate-fade-in">
+                        <PhotoUpload
+                          label="Change Spot Cover Photo"
+                          onUploadSuccess={async (fileId) => {
+                            try {
+                              await updateRestaurantPhoto(rest._id, fileId);
+                              setEditingPhotoRestId(null);
+                              loadSavedTripData();
+                            } catch (err) {
+                              console.error('Photo db association error:', err);
+                              alert('Photo uploaded successfully to Drive, but failed to link in Database.');
+                            }
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -213,7 +295,7 @@ export default function MyTripPage() {
         </>
       ) : (
         <div className="text-center py-20 px-8 bg-bg-tertiary/20 rounded-lg border border-dashed border-white/8">
-          <div className="text-[4.5rem] mb-4 text-text-muted">⭐</div>
+          <Bookmark className="w-16 h-16 text-text-muted mx-auto mb-4 shrink-0" />
           <h3 className="text-2xl font-bold mb-2">Your saved list is empty</h3>
           <p className="text-text-secondary text-[0.95rem] mb-6 max-w-[420px] mx-auto">
             Star cafes and bakery dishes on the search page or save entire curated trails to build your custom walking route.
@@ -225,6 +307,16 @@ export default function MyTripPage() {
           </Link>
         </div>
       )}
+
+      <AddDishModal
+        isOpen={selectedAddDishRest !== null}
+        restaurantId={selectedAddDishRest?.id || ''}
+        restaurantName={selectedAddDishRest?.name || ''}
+        onClose={() => setSelectedAddDishRest(null)}
+        onDishAdded={() => {
+          loadSavedTripData();
+        }}
+      />
     </div>
   );
 }

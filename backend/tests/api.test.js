@@ -145,6 +145,31 @@ describe('FoodTrail API Integration Tests', () => {
     expect(res.body.stops[0].restaurantId.name).toBe('Test Cafe');
   });
 
+  test('POST /api/trails should create a new trail', async () => {
+    const res = await request(app)
+      .post('/api/trails')
+      .send({
+        name: 'New Custom Trail',
+        description: 'Test Description',
+        estimatedDuration: 30,
+        distance: 1200,
+        area: 'White Town',
+        stops: [
+          {
+            order: 1,
+            restaurantId: sampleRestaurant._id,
+            description: 'Enjoy the vibe',
+          },
+        ],
+      });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.name).toBe('New Custom Trail');
+    expect(res.body.area).toBe('White Town');
+    expect(res.body.stops.length).toBe(1);
+    expect(res.body.stops[0].description).toBe('Enjoy the vibe');
+  });
+
   // 5. Trip Saving & Sharing
   test('POST /api/trips and GET /api/trips/:shareId works', async () => {
     const postRes = await request(app)
@@ -161,5 +186,69 @@ describe('FoodTrail API Integration Tests', () => {
     expect(getRes.statusCode).toBe(200);
     expect(getRes.body.restaurantIds[0].name).toBe('Test Cafe');
     expect(getRes.body.trailId.name).toBe('Test Walk');
+  });
+
+  // 6. User Creation of Restaurants & Dishes
+  test('POST /api/restaurants creates a new restaurant', async () => {
+    const res = await request(app)
+      .post('/api/restaurants')
+      .send({
+        name: 'User Created Cafe',
+        description: 'Cozy user-added spot',
+        address: '12 Rue Romain Rolland',
+        area: 'White Town',
+        coordinates: [79.8335, 11.9324],
+        vibeTags: ['Cozy', 'Aesthetic'],
+        photoUrl: 'some-photo-id'
+      });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.name).toBe('User Created Cafe');
+    expect(res.body.area).toBe('White Town');
+    expect(res.body.location.coordinates).toEqual([79.8335, 11.9324]);
+  });
+
+  test('POST /api/restaurants validation fails on missing name', async () => {
+    const res = await request(app)
+      .post('/api/restaurants')
+      .send({
+        area: 'White Town',
+        coordinates: [79.8335, 11.9324]
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error.message).toContain('name is required');
+  });
+
+  test('POST /api/dishes creates a new dish for a restaurant', async () => {
+    const res = await request(app)
+      .post('/api/dishes')
+      .send({
+        name: 'User Created Dish',
+        description: 'Yummy dish',
+        price: 250,
+        photoUrl: 'some-dish-photo',
+        restaurantId: sampleRestaurant._id,
+        isSignature: true
+      });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.name).toBe('User Created Dish');
+    expect(res.body.price).toBe(250);
+    expect(res.body.restaurantId).toBe(sampleRestaurant._id.toString());
+  });
+
+  test('POST /api/dishes validation fails on non-existent restaurant', async () => {
+    const fakeId = new mongoose.Types.ObjectId();
+    const res = await request(app)
+      .post('/api/dishes')
+      .send({
+        name: 'User Created Dish',
+        price: 250,
+        restaurantId: fakeId
+      });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.error.message).toContain('restaurant not found');
   });
 });

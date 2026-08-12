@@ -44,4 +44,57 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
+/**
+ * @route   POST /api/trails
+ * @desc    Create a new walking food trail
+ * @access  Public
+ */
+router.post('/', async (req, res, next) => {
+  try {
+    const { name, description, estimatedDuration, distance, area, photoUrl, stops } = req.body;
+
+    // Validate required fields
+    if (!name || !estimatedDuration || !distance || !area) {
+      return res.status(400).json({
+        error: { message: 'Fields name, estimatedDuration, distance, and area are required.' },
+      });
+    }
+
+    // Validate area enum
+    const validAreas = ['White Town', 'Auroville Road', 'Heritage Town', 'Others'];
+    if (!validAreas.includes(area)) {
+      return res.status(400).json({
+        error: { message: `Invalid area. Must be one of: ${validAreas.join(', ')}` },
+      });
+    }
+
+    // Validate stops structure if provided
+    if (stops && Array.isArray(stops)) {
+      for (const stop of stops) {
+        if (stop.order === undefined || !stop.restaurantId) {
+          return res.status(400).json({
+            error: { message: 'Each stop must have an order and a restaurantId.' },
+          });
+        }
+      }
+    }
+
+    const trail = new Trail({
+      name,
+      description,
+      estimatedDuration,
+      distance,
+      area,
+      photoUrl,
+      stops: stops || [],
+    });
+
+    await trail.save();
+
+    res.status(201).json(trail);
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

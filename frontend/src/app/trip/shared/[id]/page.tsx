@@ -10,7 +10,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-import { SavedTrip, getSharedTrip } from '../../../services/api';
+import { SavedTrip, getSharedTrip, formatPhotoUrl } from '../../../services/api';
+import { AlertCircle, Download, MapPin, Star } from 'lucide-react';
 
 export default function SharedTripViewPage() {
   const { id } = useParams();
@@ -76,7 +77,7 @@ export default function SharedTripViewPage() {
         </div>
       ) : errorMsg ? (
         <div className="text-center py-20 px-8 bg-bg-tertiary/20 rounded-lg border border-dashed border-white/8">
-          <div className="text-5xl mb-4">⚠️</div>
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4 shrink-0" />
           <h3 className="text-xl font-bold mb-2">Shared route not found</h3>
           <p className="text-text-secondary text-[0.95rem] mb-6 max-w-[420px] mx-auto">{errorMsg}</p>
           <Link href="/">
@@ -93,7 +94,8 @@ export default function SharedTripViewPage() {
               className="bg-accent text-white border-none rounded-sm px-5 py-3 font-bold cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(244,63,94,0.25)] hover:bg-accent-hover"
               onClick={handleImportRoute}
             >
-              📥 Import to My Saved Trip
+              <Download className="w-4 h-4 shrink-0" />
+              <span>Import to My Saved Trip</span>
             </button>
           </div>
 
@@ -105,7 +107,7 @@ export default function SharedTripViewPage() {
                   
                   {rest.photoUrl && (
                     <img
-                      src={rest.photoUrl}
+                      src={formatPhotoUrl(rest.photoUrl)}
                       alt={rest.name}
                       className="w-full sm:w-[100px] h-[140px] sm:h-[100px] object-cover rounded-sm shrink-0 bg-bg-tertiary"
                     />
@@ -117,12 +119,18 @@ export default function SharedTripViewPage() {
                     </div>
 
                     <div className="flex gap-6 text-[0.85rem] text-text-secondary mb-2">
-                      <span>📍 {rest.area}</span>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                        <span>{rest.area}</span>
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}>
                         <span className={`status-dot ${getStatusDotClass(rest.busyStatus)}`}></span>
                         <span>{rest.busyStatus}</span>
                       </div>
-                      <span>★ {rest.rating}</span>
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3.5 h-3.5 fill-rating text-rating shrink-0" />
+                        <span>{rest.rating}</span>
+                      </div>
                     </div>
 
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>

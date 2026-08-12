@@ -80,4 +80,87 @@ router.patch('/:id/busy-status', async (req, res, next) => {
   }
 });
 
+/**
+ * @route   PATCH /api/restaurants/:id/photo
+ * @desc    Update a restaurant's photo URL (Google Drive File ID)
+ * @access  Public
+ */
+router.patch('/:id/photo', async (req, res, next) => {
+  try {
+    const { photoUrl } = req.body;
+    if (!photoUrl) {
+      return res.status(400).json({ error: { message: 'photoUrl is required' } });
+    }
+
+    const restaurant = await Restaurant.findByIdAndUpdate(
+      req.params.id,
+      { photoUrl },
+      { new: true }
+    );
+
+    if (!restaurant) {
+      return res.status(404).json({ error: { message: 'Restaurant not found' } });
+    }
+
+    res.json(restaurant);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   POST /api/restaurants
+ * @desc    Create a new restaurant
+ * @access  Public
+ */
+router.post('/', async (req, res, next) => {
+  try {
+    const { name, description, address, area, coordinates, vibeTags, photoUrl } = req.body;
+
+    // Validation
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: { message: 'Restaurant name is required' } });
+    }
+
+    const validAreas = ['White Town', 'Auroville Road', 'Heritage Town', 'Others'];
+    if (!area || !validAreas.includes(area)) {
+      return res.status(400).json({
+        error: { message: `Area is required and must be one of: ${validAreas.join(', ')}` },
+      });
+    }
+
+    if (!coordinates || !Array.isArray(coordinates) || coordinates.length !== 2) {
+      return res.status(400).json({
+        error: { message: 'Coordinates are required as an array of [longitude, latitude]' },
+      });
+    }
+
+    const [longitude, latitude] = coordinates.map(Number);
+    if (isNaN(longitude) || isNaN(latitude)) {
+      return res.status(400).json({
+        error: { message: 'Coordinates must be valid numbers' },
+      });
+    }
+
+    const restaurant = new Restaurant({
+      name,
+      description,
+      address,
+      area,
+      location: {
+        type: 'Point',
+        coordinates: [longitude, latitude],
+      },
+      vibeTags: Array.isArray(vibeTags) ? vibeTags : [],
+      photoUrl,
+    });
+
+    await restaurant.save();
+
+    res.status(201).json(restaurant);
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

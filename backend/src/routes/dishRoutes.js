@@ -66,4 +66,49 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+/**
+ * @route   POST /api/dishes
+ * @desc    Create a new dish
+ * @access  Public
+ */
+router.post('/', async (req, res, next) => {
+  try {
+    const { name, description, price, photoUrl, restaurantId, isSignature } = req.body;
+
+    // Validation
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: { message: 'Dish name is required' } });
+    }
+
+    if (price === undefined || price === null || isNaN(Number(price)) || Number(price) < 0) {
+      return res.status(400).json({ error: { message: 'A valid non-negative price is required' } });
+    }
+
+    if (!restaurantId) {
+      return res.status(400).json({ error: { message: 'Restaurant ID is required' } });
+    }
+
+    // Verify restaurant exists
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ error: { message: 'Associated restaurant not found' } });
+    }
+
+    const dish = new Dish({
+      name,
+      description,
+      price: Number(price),
+      photoUrl,
+      restaurantId,
+      isSignature: !!isSignature,
+    });
+
+    await dish.save();
+
+    res.status(201).json(dish);
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

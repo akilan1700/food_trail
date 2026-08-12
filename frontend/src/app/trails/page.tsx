@@ -7,10 +7,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
-import { Trail, getTrails, getTrailDetails, updateBusyStatus } from '../services/api';
+import { Trail, getTrails, getTrailDetails, updateBusyStatus, formatPhotoUrl } from '../services/api';
+import { Footprints, Route, Compass, Bookmark, MapPin } from 'lucide-react';
+import { useAppDispatch } from '../services/hooks';
+import { addRestaurants, setSavedTrailId } from '../services/tripSlice';
 
 export default function TrailsPage() {
+  const dispatch = useAppDispatch();
   const [trails, setTrails] = useState<Trail[]>([]);
   const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,23 +60,8 @@ export default function TrailsPage() {
     if (!selectedTrail) return;
     
     const restIdsToSave = selectedTrail.stops.map(stop => stop.restaurantId._id);
-    const existing = localStorage.getItem('foodtrail_saved_trip');
-    let updated: string[] = [];
-    
-    if (existing) {
-      try {
-        const parsed = JSON.parse(existing) as string[];
-        // Merge and avoid duplicates
-        updated = Array.from(new Set([...parsed, ...restIdsToSave]));
-      } catch (err) {
-        console.error('Error parsing existing saved trip in trail add:', err);
-        updated = restIdsToSave;
-      }
-    } else {
-      updated = restIdsToSave;
-    }
-    
-    localStorage.setItem('foodtrail_saved_trip', JSON.stringify(updated));
+    dispatch(addRestaurants(restIdsToSave));
+    dispatch(setSavedTrailId(selectedTrail._id));
     alert(`Added all ${selectedTrail.stops.length} places from "${selectedTrail.name}" to your Trip list!`);
   };
 
@@ -101,7 +91,15 @@ export default function TrailsPage() {
     <div className="max-w-[900px] mx-auto animate-fade-in">
       <section className="text-center my-8 md:my-12">
         <h1 className="text-[2.25rem] font-extrabold mb-2">Walkable Food Trails</h1>
-        <p className="text-text-secondary">Explore Puducherry&apos;s heritage French streets &amp; organic eco-cafes on foot.</p>
+        <p className="text-text-secondary mb-6">Explore Puducherry&apos;s heritage French streets &amp; organic eco-cafes on foot.</p>
+        <Link href="/trails/create">
+          <button
+            type="button"
+            className="bg-accent text-white border border-accent rounded-sm px-5 py-3 font-semibold cursor-pointer transition-all duration-300 hover:bg-accent-hover shadow-[0_4px_12px_rgba(244,63,94,0.2)]"
+          >
+            Create Custom Walking Trail
+          </button>
+        </Link>
       </section>
 
       {loading ? (
@@ -124,14 +122,15 @@ export default function TrailsPage() {
                   <div className="h-[180px] relative bg-bg-tertiary">
                     {trail.photoUrl && (
                       <img
-                        src={trail.photoUrl}
+                        src={formatPhotoUrl(trail.photoUrl)}
                         alt={trail.name}
                         className="w-full h-full object-cover"
                       />
                     )}
                     <span className="absolute bottom-4 left-4 bg-bg-primary/85 backdrop-blur-sm px-2.5 py-1 rounded-sm text-[0.75rem] font-semibold border border-white/8">{trail.area}</span>
-                    <span className="absolute top-4 right-4 bg-accent text-white px-2.5 py-1 rounded-sm text-[0.75rem] font-bold shadow-[0_4px_8px_rgba(244,63,94,0.3)]">
-                      🚶 {trail.estimatedDuration} Min Walk
+                    <span className="absolute top-4 right-4 bg-accent text-white px-2.5 py-1 rounded-sm text-[0.75rem] font-bold shadow-[0_4px_8px_rgba(244,63,94,0.3)] flex items-center gap-1">
+                      <Footprints className="w-3.5 h-3.5 shrink-0" />
+                      <span>{trail.estimatedDuration} Min Walk</span>
                     </span>
                   </div>
                   <div className="p-6">
@@ -139,10 +138,12 @@ export default function TrailsPage() {
                     <p className="text-sm text-text-secondary leading-relaxed mb-4">{trail.description}</p>
                     <div className="flex gap-6 text-[0.85rem] text-text-muted">
                       <div className="flex items-center gap-1.5">
-                        <span>📏 {(trail.distance / 1000).toFixed(1)} km</span>
+                        <Route className="w-4 h-4 shrink-0" />
+                        <span>{(trail.distance / 1000).toFixed(1)} km</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <span>☕ {trail.stops?.length || 0} stops</span>
+                        <Compass className="w-4 h-4 shrink-0" />
+                        <span>{trail.stops?.length || 0} stops</span>
                       </div>
                     </div>
                   </div>
@@ -170,12 +171,13 @@ export default function TrailsPage() {
                       className="bg-accent text-white border-none rounded-sm px-5 py-3 font-semibold cursor-pointer transition-all duration-300 flex items-center gap-2 shrink-0 hover:bg-accent-hover"
                       onClick={handleSaveTrailRestaurants}
                     >
-                      ⭐ Save Route Stops
+                      <Bookmark className="w-4 h-4 fill-white shrink-0" />
+                      <span>Save Route Stops</span>
                     </button>
                   </div>
 
                   <div className="grid grid-cols-1 gap-8">
-                    <div className="flex flex-col gap-6 relative pl-8 before:content-[''] before:absolute before:left-[7px] before:top-6 before:bottom-6 before:w-[2px] before:bg-gradient-to-b before:from-accent before:to-bg-tertiary">
+                    <div className="flex flex-col gap-6 relative pl-8 before:content-[''] before:absolute before:left-[7px] before:top-6 before:bottom-6 before:w-[2px] before:bg-accent/30">
                       {selectedTrail.stops
                         .sort((a, b) => a.order - b.order)
                         .map((stop) => {
@@ -200,8 +202,9 @@ export default function TrailsPage() {
                               <p className="text-sm text-text-secondary mb-4 leading-relaxed">{stop.description}</p>
 
                               <div className="flex justify-between items-center border-t border-white/5 pt-3 flex-wrap gap-2">
-                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                  📍 {rest.address}
+                                <span className="flex items-center gap-1 text-[0.8rem] text-text-secondary">
+                                  <MapPin className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                                  <span>{rest.address}</span>
                                 </span>
 
                                 <div className="flex items-center gap-2 text-[0.8rem]">

@@ -6,12 +6,14 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
 
 // Route imports (to be created)
 const dishRoutes = require('./routes/dishRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const trailRoutes = require('./routes/trailRoutes');
 const tripRoutes = require('./routes/tripRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
 
@@ -20,11 +22,15 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
+// Static serving for local photo uploads fallback
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Mount routes
 app.use('/api/dishes', dishRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/trails', trailRoutes);
 app.use('/api/trips', tripRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

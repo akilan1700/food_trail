@@ -7,8 +7,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-import { Dish, getDishes, searchDishes } from './services/api';
+import { Dish, getDishes, searchDishes, formatPhotoUrl } from './services/api';
+import { useAppDispatch, useAppSelector } from './services/hooks';
+import { selectSavedRestIds, addRestaurant, removeRestaurant } from './services/tripSlice';
+import { Search, Star, MapPin, Bookmark, Utensils, Plus } from 'lucide-react';
+import AddDishModal from './components/AddDishModal';
 
 const AVAILABLE_VIBES = [
   'Pet-friendly',
@@ -27,7 +30,10 @@ export default function HomePage() {
   const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savedRestIds, setSavedRestIds] = useState<string[]>([]);
+  const [selectedAddDishRest, setSelectedAddDishRest] = useState<{ id: string; name: string } | null>(null);
+
+  const dispatch = useAppDispatch();
+  const savedRestIds = useAppSelector(selectSavedRestIds);
 
   // Fetch initial featured dishes (signature or highly rated ones)
   const fetchFeaturedDishes = async () => {
@@ -59,16 +65,8 @@ export default function HomePage() {
     }
   };
 
-  // Load saved trip items from LocalStorage on mount
+  // Load featured dishes on mount
   useEffect(() => {
-    const saved = localStorage.getItem('foodtrail_saved_trip');
-    if (saved) {
-      try {
-        setSavedRestIds(JSON.parse(saved));
-      } catch (err) {
-        console.error('Error parsing saved trip data:', err);
-      }
-    }
     fetchFeaturedDishes();
   }, []);
 
@@ -89,14 +87,11 @@ export default function HomePage() {
 
   // Toggle restaurant in saved "My Trip" list
   const toggleSaveRestaurant = (restaurantId: string) => {
-    let updated: string[];
     if (savedRestIds.includes(restaurantId)) {
-      updated = savedRestIds.filter((id) => id !== restaurantId);
+      dispatch(removeRestaurant(restaurantId));
     } else {
-      updated = [...savedRestIds, restaurantId];
+      dispatch(addRestaurant(restaurantId));
     }
-    setSavedRestIds(updated);
-    localStorage.setItem('foodtrail_saved_trip', JSON.stringify(updated));
   };
 
   // Helper for busy status dot class
@@ -112,7 +107,7 @@ export default function HomePage() {
   return (
     <div className="animate-fade-in">
       <section className="text-center my-10 md:my-14 animate-fade-in">
-        <h1 className="text-[2rem] md:text-[2.75rem] font-extrabold leading-tight mb-3 bg-gradient-to-br from-text-primary to-accent bg-clip-text text-transparent">Find Puducherry&apos;s Best Dishes</h1>
+        <h1 className="text-[2rem] md:text-[2.75rem] font-extrabold leading-tight mb-3 text-text-primary">Find Puducherry&apos;s Best Dishes</h1>
         <p className="text-lg text-text-secondary max-w-[600px] mx-auto">
           Search for exact dishes (like Almond Croissants) and filter by cafe vibes. Get top spots, live busy statuses, and coordinates.
         </p>
@@ -128,7 +123,8 @@ export default function HomePage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <button type="submit" className="bg-accent text-white border-none rounded-sm px-6 py-4 sm:py-0 font-semibold cursor-pointer transition-all duration-300 hover:bg-accent-hover hover:scale-[1.02] flex items-center justify-center gap-2">
-            🔍 Search
+            <Search className="w-4 h-4 shrink-0" />
+            <span>Search</span>
           </button>
         </form>
 
@@ -178,13 +174,13 @@ export default function HomePage() {
                   <div className="relative h-[200px] w-full bg-bg-tertiary">
                     {dish.photoUrl && (
                       <img
-                        src={dish.photoUrl}
+                        src={formatPhotoUrl(dish.photoUrl)}
                         alt={dish.name}
                         className="w-full h-full object-cover"
                       />
                     )}
                     {dish.isSignature && (
-                      <span className="absolute top-4 left-4 bg-gradient-to-br from-amber-500 to-amber-700 px-3 py-1.5 rounded-full font-bold text-white text-[0.75rem] uppercase tracking-wide shadow-[0_4px_10px_rgba(245,158,11,0.3)]">Signature</span>
+                      <span className="absolute top-4 left-4 bg-rating px-3 py-1.5 rounded-full font-bold text-white text-[0.75rem] uppercase tracking-wide shadow-[0_4px_10px_rgba(245,158,11,0.2)]">Signature</span>
                     )}
                     <span className="absolute top-4 right-4 bg-bg-primary/80 backdrop-blur-sm px-3 py-1.5 rounded-full font-bold text-text-primary border border-white/8 text-sm">₹{dish.price}</span>
                   </div>
@@ -194,15 +190,30 @@ export default function HomePage() {
                     <p className="text-sm text-text-secondary leading-relaxed mb-4 flex-grow">{dish.description}</p>
 
                     <div className="border-t border-white/5 pt-4 mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-semibold text-text-primary text-base">{rest.name}</span>
-                        <div className="flex items-center gap-1 text-[0.85rem] text-rating font-bold">
-                          ★ {dish.rating || rest.rating}
+                      <div className="flex justify-between items-center mb-2 gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-semibold text-text-primary text-base truncate" title={rest.name}>{rest.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAddDishRest({ id: rest._id, name: rest.name })}
+                            className="text-[0.7rem] text-accent hover:text-accent-hover font-bold flex items-center gap-0.5 border border-accent/15 bg-accent/5 px-2 py-0.5 rounded-full hover:bg-accent/10 transition-all cursor-pointer shrink-0"
+                            title="Add signature dish to this cafe"
+                          >
+                            <Plus className="w-2.5 h-2.5" />
+                            <span>Add Dish</span>
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1 text-[0.85rem] text-rating font-bold shrink-0">
+                          <Star className="w-4 h-4 fill-rating text-rating shrink-0" />
+                          <span>{dish.rating || rest.rating}</span>
                         </div>
                       </div>
                       
                       <div className="flex justify-between items-center text-xs text-text-secondary">
-                        <span>📍 {rest.area}</span>
+                        <div className="flex items-center gap-1 text-text-secondary">
+                          <MapPin className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                          <span>{rest.area}</span>
+                        </div>
                         <div className="flex items-center gap-1.5 font-semibold bg-white/3 px-2 py-1 rounded">
                           <span className={`status-dot ${getStatusDotClass(rest.busyStatus)}`}></span>
                           <span>{rest.busyStatus}</span>
@@ -223,7 +234,17 @@ export default function HomePage() {
                       className={isSaved ? "w-full bg-accent text-white border border-accent p-3 rounded-sm font-semibold cursor-pointer flex items-center justify-center gap-2 text-sm" : "w-full bg-transparent text-text-primary border border-white/10 p-3 rounded-sm font-semibold cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 text-sm hover:bg-accent-light hover:border-accent hover:text-accent"}
                       onClick={() => toggleSaveRestaurant(rest._id)}
                     >
-                      {isSaved ? '★ Saved to Trip' : '☆ Save to My Trip'}
+                      {isSaved ? (
+                        <>
+                          <Bookmark className="w-4 h-4 fill-white shrink-0" />
+                          <span>Saved to Trip</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bookmark className="w-4 h-4 shrink-0" />
+                          <span>Save to My Trip</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -232,7 +253,7 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="text-center py-16 px-8 bg-bg-tertiary/20 rounded-md border border-dashed border-white/8">
-            <div className="text-5xl mb-4">🍽️</div>
+            <Utensils className="w-12 h-12 text-text-muted mx-auto mb-4" />
             <h3 className="text-xl font-bold mb-2">No exact dishes found</h3>
             <p className="text-text-secondary text-sm max-w-[400px] mx-auto">
               We couldn&apos;t find a matching dish in Puducherry for that query. Try searching &quot;Almond Croissant&quot; or &quot;Pizza&quot;.
@@ -240,6 +261,20 @@ export default function HomePage() {
           </div>
         )}
       </section>
+
+      <AddDishModal
+        isOpen={selectedAddDishRest !== null}
+        restaurantId={selectedAddDishRest?.id || ''}
+        restaurantName={selectedAddDishRest?.name || ''}
+        onClose={() => setSelectedAddDishRest(null)}
+        onDishAdded={() => {
+          if (searchQuery || selectedVibes.length > 0) {
+            handleSearch();
+          } else {
+            fetchFeaturedDishes();
+          }
+        }}
+      />
     </div>
   );
 }

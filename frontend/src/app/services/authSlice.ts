@@ -34,6 +34,9 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   error: string | null;
+  detectedCity: string | null;
+  detectedLatitude: number | null;
+  detectedLongitude: number | null;
 }
 
 // Safer localStorage check to avoid server-side execution errors in Next.js
@@ -44,11 +47,18 @@ const getInitialState = (): AuthState => {
       token: null,
       loading: false,
       error: null,
+      detectedCity: null,
+      detectedLatitude: null,
+      detectedLongitude: null,
     };
   }
 
   const token = localStorage.getItem('foodtrail_token');
   const userJson = localStorage.getItem('foodtrail_user');
+  const detectedCity = localStorage.getItem('foodtrail_detected_city');
+  const detectedLatitude = localStorage.getItem('foodtrail_detected_latitude') ? Number(localStorage.getItem('foodtrail_detected_latitude')) : null;
+  const detectedLongitude = localStorage.getItem('foodtrail_detected_longitude') ? Number(localStorage.getItem('foodtrail_detected_longitude')) : null;
+  
   let user: User | null = null;
 
   if (userJson) {
@@ -64,6 +74,9 @@ const getInitialState = (): AuthState => {
     token,
     loading: false,
     error: null,
+    detectedCity,
+    detectedLatitude,
+    detectedLongitude,
   };
 };
 
@@ -73,6 +86,19 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    setDetectedLocation(
+      state,
+      action: PayloadAction<{ city: string; latitude: number; longitude: number }>
+    ) {
+      state.detectedCity = action.payload.city;
+      state.detectedLatitude = action.payload.latitude;
+      state.detectedLongitude = action.payload.longitude;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('foodtrail_detected_city', action.payload.city);
+        localStorage.setItem('foodtrail_detected_latitude', String(action.payload.latitude));
+        localStorage.setItem('foodtrail_detected_longitude', String(action.payload.longitude));
+      }
+    },
     setCredentials(state, action: PayloadAction<{ user: User; token: string }>) {
       const { user, token } = action.payload;
       state.user = user;
@@ -132,11 +158,14 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, clearCredentials, updateUserSettings, setLoading, setError } = authSlice.actions;
+export const { setDetectedLocation, setCredentials, clearCredentials, updateUserSettings, setLoading, setError } = authSlice.actions;
 
 export const selectCurrentUser = (state: { auth: AuthState }) => state.auth.user;
 export const selectAuthToken = (state: { auth: AuthState }) => state.auth.token;
 export const selectAuthLoading = (state: { auth: AuthState }) => state.auth.loading;
 export const selectAuthError = (state: { auth: AuthState }) => state.auth.error;
+export const selectDetectedCity = (state: { auth: AuthState }) => state.auth.detectedCity;
+export const selectDetectedLatitude = (state: { auth: AuthState }) => state.auth.detectedLatitude;
+export const selectDetectedLongitude = (state: { auth: AuthState }) => state.auth.detectedLongitude;
 
 export default authSlice.reducer;

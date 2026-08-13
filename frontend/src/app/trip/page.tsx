@@ -11,7 +11,7 @@ import Link from 'next/link';
 
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectSavedRestIds, selectSavedTrailId, setSavedTrailId, removeRestaurant, clearTrip } from '../services/tripSlice';
-import { selectCurrentUser, setCredentials } from '../services/authSlice';
+import { selectCurrentUser, setCredentials, selectDetectedCity } from '../services/authSlice';
 import { Restaurant, Trail, getRestaurants, getTrailDetails, createSharedTrip, formatPhotoUrl, updateRestaurantPhoto, completeWalk } from '../services/api';
 import { Trash2, MessageCircle, MapPin, Star, Bookmark, Camera, PlusCircle, CheckCircle2 } from 'lucide-react';
 import PhotoUpload from '../components/PhotoUpload';
@@ -22,6 +22,7 @@ export default function MyTripPage() {
   const savedRestIds = useAppSelector(selectSavedRestIds);
   const savedTrailId = useAppSelector(selectSavedTrailId);
   const user = useAppSelector(selectCurrentUser);
+  const detectedCity = useAppSelector(selectDetectedCity);
   const [savedRestaurants, setSavedRestaurants] = useState<Restaurant[]>([]);
   const [parentTrail, setParentTrail] = useState<Trail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,8 +102,9 @@ export default function MyTripPage() {
       setShareLink(generatedLink);
       
       // Trigger WhatsApp redirection with pre-filled message
+      const tripCity = detectedCity || user?.profile?.city;
       const text = encodeURIComponent(
-        `Hey! Check out my walkable Food Trail route in Puducherry: ${generatedLink}`
+        `Hey! Check out my walkable Food Trail route${tripCity ? ` in ${tripCity}` : ''}: ${generatedLink}`
       );
       window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
     } catch (error) {

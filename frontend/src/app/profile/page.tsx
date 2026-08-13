@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
-import { selectCurrentUser, clearCredentials } from '../services/authSlice';
+import { selectCurrentUser, clearCredentials, selectDetectedCity } from '../services/authSlice';
 import { selectSavedRestIds } from '../services/tripSlice';
 import AuthForm from '../components/AuthForm';
 import LoadingScreen from '../components/LoadingScreen';
@@ -18,6 +18,7 @@ import Link from 'next/link';
 export default function ProfilePage() {
   const user = useAppSelector(selectCurrentUser);
   const savedRestIds = useAppSelector(selectSavedRestIds);
+  const detectedCity = useAppSelector(selectDetectedCity);
   const dispatch = useAppDispatch();
   const [mounted, setMounted] = useState(false);
 
@@ -181,7 +182,7 @@ export default function ProfilePage() {
             href="/"
             className="flex-1 bg-bg-tertiary border border-white/8 text-text-secondary hover:text-text-primary hover:bg-bg-tertiary/80 rounded-sm py-3.5 text-center font-semibold transition-all block"
           >
-            Explore Puducherry Spots
+            Explore {detectedCity || user?.profile?.city ? `${detectedCity || user?.profile?.city} Spots` : 'Nearby Spots'}
           </Link>
         </div>
       </div>

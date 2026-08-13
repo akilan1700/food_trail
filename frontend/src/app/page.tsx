@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { Dish, getDishes, searchDishes, formatPhotoUrl } from './services/api';
 import { useAppDispatch, useAppSelector } from './services/hooks';
 import { selectSavedRestIds, addRestaurant, removeRestaurant } from './services/tripSlice';
+import { selectCurrentUser, selectDetectedCity } from './services/authSlice';
 import { Search, Star, MapPin, Bookmark, Utensils, Plus } from 'lucide-react';
 import AddDishModal from './components/AddDishModal';
 
@@ -32,9 +33,14 @@ export default function HomePage() {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAddDishRest, setSelectedAddDishRest] = useState<{ id: string; name: string } | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const dispatch = useAppDispatch();
   const savedRestIds = useAppSelector(selectSavedRestIds);
+  const user = useAppSelector(selectCurrentUser);
+  const detectedCity = useAppSelector(selectDetectedCity);
+
+  const currentCity = detectedCity || user?.profile?.city;
 
   // Fetch initial featured dishes (signature or highly rated ones)
   const fetchFeaturedDishes = async () => {
@@ -68,6 +74,7 @@ export default function HomePage() {
 
   // Load featured dishes on mount
   useEffect(() => {
+    setMounted(true);
     fetchFeaturedDishes();
   }, []);
 
@@ -108,7 +115,9 @@ export default function HomePage() {
   return (
     <div className="animate-fade-in">
       <section className="text-center my-10 md:my-14 animate-fade-in">
-        <h1 className="text-[2rem] md:text-[2.75rem] font-extrabold leading-tight mb-3 text-text-primary">Find Puducherry&apos;s Best Dishes</h1>
+        <h1 className="text-[2rem] md:text-[2.75rem] font-extrabold leading-tight mb-3 text-text-primary">
+          Find {mounted && currentCity ? `the Best Dishes in ${currentCity}` : "Your Area's Best Dishes"}
+        </h1>
         <p className="text-lg text-text-secondary max-w-[600px] mx-auto">
           Search for exact dishes (like Almond Croissants) and filter by cafe vibes. Get top spots, live busy statuses, and coordinates.
         </p>
@@ -258,7 +267,7 @@ export default function HomePage() {
               <Utensils className="w-12 h-12 text-text-muted mx-auto mb-4" />
               <h3 className="text-xl font-bold mb-2">No exact dishes found</h3>
               <p className="text-text-secondary text-sm max-w-[400px] mx-auto">
-                We couldn&apos;t find a matching dish in Puducherry for that query. Try adjusting your search or filters.
+                We couldn&apos;t find a matching dish {mounted && currentCity ? `in ${currentCity}` : 'in your area'} for that query. Try adjusting your search or filters.
               </p>
             </div>
           ) : (

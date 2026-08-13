@@ -26,6 +26,9 @@ const otpSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  mpin: {
+    type: String,
+  },
   expiresAt: {
     type: Date,
     required: [true, 'Expiration time is required'],

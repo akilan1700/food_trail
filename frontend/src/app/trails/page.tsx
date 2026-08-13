@@ -11,15 +11,19 @@ import Link from 'next/link';
 
 import { Trail, getTrails, getTrailDetails, updateBusyStatus, formatPhotoUrl } from '../services/api';
 import { Footprints, Route, Compass, Bookmark, MapPin } from 'lucide-react';
-import { useAppDispatch } from '../services/hooks';
+import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { addRestaurants, setSavedTrailId } from '../services/tripSlice';
+import { selectCurrentUser, selectDetectedCity } from '../services/authSlice';
 
 export default function TrailsPage() {
   const dispatch = useAppDispatch();
+  const user = useAppSelector(selectCurrentUser);
+  const detectedCity = useAppSelector(selectDetectedCity);
   const [trails, setTrails] = useState<Trail[]>([]);
   const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const fetchTrails = async () => {
     setLoading(true);
@@ -51,6 +55,7 @@ export default function TrailsPage() {
 
   // Fetch all trails on load
   useEffect(() => {
+    setMounted(true);
     fetchTrails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -91,7 +96,7 @@ export default function TrailsPage() {
     <div className="max-w-[900px] mx-auto animate-fade-in">
       <section className="text-center my-8 md:my-12">
         <h1 className="text-[2.25rem] font-extrabold mb-2">Walkable Food Trails</h1>
-        <p className="text-text-secondary mb-6">Explore Puducherry&apos;s heritage French streets &amp; organic eco-cafes on foot.</p>
+        <p className="text-text-secondary mb-6">Explore {mounted && (detectedCity || user?.profile?.city) ? `${detectedCity || user?.profile?.city}'s` : 'local'} heritage streets &amp; organic eco-cafes on foot.</p>
         <Link href="/trails/create">
           <button
             type="button"
@@ -236,7 +241,7 @@ export default function TrailsPage() {
           <Footprints className="w-12 h-12 text-text-muted mx-auto mb-4" />
           <h3 className="text-xl font-bold mb-2">No walking trails created yet</h3>
           <p className="text-text-secondary text-sm max-w-[400px] mx-auto mb-6">
-            Build your own walking food route through Puducherry using the creator.
+            Build your own walking food route through {mounted && (detectedCity || user?.profile?.city) ? (detectedCity || user?.profile?.city) : 'your area'} using the creator.
           </p>
           <Link href="/trails/create">
             <span className="inline-block bg-accent hover:bg-accent-hover text-white font-semibold px-6 py-3 rounded-sm transition-all duration-300 transform hover:scale-[1.02] cursor-pointer">

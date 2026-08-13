@@ -67,7 +67,7 @@ export default function SharedTripViewPage() {
     <div className="max-w-[800px] mx-auto animate-fade-in">
       <section className="text-center my-8 md:my-12">
         <h1 className="text-[2.25rem] font-extrabold mb-2">Shared Food Trail</h1>
-        <p className="text-text-secondary">Someone shared this custom Puducherry food walk route with you!</p>
+        <p className="text-text-secondary">Someone shared this custom food walk route with you!</p>
       </section>
 
       {loading ? (

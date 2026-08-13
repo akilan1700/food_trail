@@ -267,11 +267,19 @@ export async function createDish(dishData: {
   });
 }
 
+export interface AuthResponse {
+  token?: string;
+  user?: User;
+  status?: string;
+  email?: string;
+  type?: 'signup' | 'login';
+}
+
 /**
  * Sign up user with email, name, and mpin.
  */
-export async function signupUser(email: string, name: string, mpin: string): Promise<{ token: string; user: User }> {
-  return apiRequest<{ token: string; user: User }>('/auth/signup', {
+export async function signupUser(email: string, name: string, mpin: string): Promise<AuthResponse> {
+  return apiRequest<AuthResponse>('/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, name, mpin }),
@@ -281,11 +289,22 @@ export async function signupUser(email: string, name: string, mpin: string): Pro
 /**
  * Log in user with email and mpin.
  */
-export async function loginUser(email: string, mpin: string): Promise<{ token: string; user: User }> {
-  return apiRequest<{ token: string; user: User }>('/auth/login', {
+export async function loginUser(email: string, mpin: string): Promise<AuthResponse> {
+  return apiRequest<AuthResponse>('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, mpin }),
+  });
+}
+
+/**
+ * Verify the OTP sent via email and complete registration/login.
+ */
+export async function verifyOtp(email: string, otp: string, type: 'signup' | 'login'): Promise<{ token: string; user: User }> {
+  return apiRequest<{ token: string; user: User }>('/auth/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp, type }),
   });
 }
 

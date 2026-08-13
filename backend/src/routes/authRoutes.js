@@ -9,6 +9,7 @@ const User = require('../models/User');
 const Otp = require('../models/Otp');
 const UserProfile = require('../models/UserProfile');
 const authMiddleware = require('../middleware/authMiddleware');
+const { sendOtpEmail } = require('../services/emailService');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
@@ -46,35 +47,28 @@ router.post('/signup', async (req, res, next) => {
       return res.status(400).json({ error: { message: 'Email address is already registered' } });
     }
 
-    const user = new User({
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Clean old OTP codes for this signup
+    await Otp.deleteMany({ email: trimmedEmail, type: 'signup' });
+
+    const otpRecord = new Otp({
       email: trimmedEmail,
+      otp: otpCode,
+      type: 'signup',
       name: name.trim(),
-      mpin,
-      settings: {
-        notificationsEnabled: true,
-        preferredTheme: 'Dark',
-      },
+      mpin: mpin,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
     });
-    await user.save();
+    await otpRecord.save();
 
-    // Create linked profile
-    const userProfile = new UserProfile({
-      userId: user._id,
-      phoneNumber: '',
-      bio: '',
-      dateOfBirth: null,
-      city: '',
-      favoriteCuisine: '',
-    });
-    await userProfile.save();
+    // Send transaction email via Brevo
+    await sendOtpEmail(trimmedEmail, otpCode, 'signup');
 
-    // Generate JWT
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
-
-    const formattedUser = await formatUserResponse(user, userProfile);
-    res.status(201).json({
-      token,
-      user: formattedUser,
+    res.status(200).json({
+      status: 'otp_required',
+      email: trimmedEmail,
+      type: 'signup',
     });
   } catch (error) {
     next(error);
@@ -111,14 +105,115 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ error: { message: 'Invalid email or MPIN' } });
     }
 
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Clean old OTP codes for this login
+    await Otp.deleteMany({ email: trimmedEmail, type: 'login' });
+
+    const otpRecord = new Otp({
+      email: trimmedEmail,
+      otp: otpCode,
+      type: 'login',
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    });
+    await otpRecord.save();
+
+    // Send transaction email via Brevo
+    await sendOtpEmail(trimmedEmail, otpCode, 'login');
+
+    res.status(200).json({
+      status: 'otp_required',
+      email: trimmedEmail,
+      type: 'login',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route POST /api/auth/verify
+ * @desc Verify OTP and complete signup or login
+ */
+router.post('/verify', async (req, res, next) => {
+  try {
+    const { email, otp, type } = req.body;
+
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: { message: 'A valid email address is required' } });
+    }
+
+    if (!otp) {
+      return res.status(400).json({ error: { message: 'OTP is required' } });
+    }
+
+    if (!type || !['signup', 'login'].includes(type)) {
+      return res.status(400).json({ error: { message: 'Invalid verification type' } });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+
+    // Find matching valid OTP
+    const otpRecord = await Otp.findOne({
+      email: trimmedEmail,
+      otp: otp.trim(),
+      type,
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ error: { message: 'Invalid or expired verification code' } });
+    }
+
+    let user;
+    let userProfile;
+
+    if (type === 'signup') {
+      const existingUser = await User.findOne({ email: trimmedEmail });
+      if (existingUser) {
+        await Otp.deleteMany({ email: trimmedEmail });
+        return res.status(400).json({ error: { message: 'Email address is already registered' } });
+      }
+
+      // Create new verified user
+      user = new User({
+        email: trimmedEmail,
+        name: otpRecord.name,
+        mpin: otpRecord.mpin,
+        settings: {
+          notificationsEnabled: true,
+          preferredTheme: 'Dark',
+        },
+      });
+      await user.save();
+
+      // Create profile details
+      userProfile = new UserProfile({
+        userId: user._id,
+        phoneNumber: '',
+        bio: '',
+        dateOfBirth: null,
+        city: '',
+        favoriteCuisine: '',
+      });
+      await userProfile.save();
+    } else {
+      user = await User.findOne({ email: trimmedEmail });
+      if (!user) {
+        return res.status(404).json({ error: { message: 'User not found' } });
+      }
+
+      userProfile = await UserProfile.findOne({ userId: user._id });
+      if (!userProfile) {
+        userProfile = new UserProfile({ userId: user._id });
+        await userProfile.save();
+      }
+    }
+
+    // Delete used OTP
+    await Otp.deleteMany({ email: trimmedEmail });
+
     // Generate JWT
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
-
-    let userProfile = await UserProfile.findOne({ userId: user._id });
-    if (!userProfile) {
-      userProfile = new UserProfile({ userId: user._id });
-      await userProfile.save();
-    }
 
     const formattedUser = await formatUserResponse(user, userProfile);
     res.status(200).json({

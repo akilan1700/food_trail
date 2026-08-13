@@ -10,8 +10,8 @@ import Navbar from './components/Navbar';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'FoodTrail Puducherry',
-  description: 'Find top dishes & walkable food trails in Puducherry.',
+  title: 'FoodTrail',
+  description: 'Find top dishes & walkable food trails in your area.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -42,7 +42,7 @@ export default function RootLayout({
             </main>
             
             <footer className="p-8 md:px-6 text-center border-t border-white/8 text-text-muted text-xs md:text-sm bg-bg-secondary">
-              <p>© {new Date().getFullYear()} FoodTrail Puducherry. Designed for walking food tours.</p>
+              <p>© {new Date().getFullYear()} FoodTrail. Designed for walking food tours.</p>
               <p style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}>PWA Installable App for tourists & locals.</p>
             </footer>
           </div>

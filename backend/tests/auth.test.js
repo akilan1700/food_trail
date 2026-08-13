@@ -10,6 +10,10 @@ const User = require('../src/models/User');
 const Otp = require('../src/models/Otp');
 const UserProfile = require('../src/models/UserProfile');
 
+jest.mock('../src/services/emailService', () => ({
+  sendOtpEmail: jest.fn().mockResolvedValue(true),
+}));
+
 const TEST_MONGO_URI = 'mongodb://localhost:27017/foodtrail_test';
 
 beforeAll(async () => {
@@ -31,15 +35,28 @@ describe('Authentication API Integration Tests', () => {
   });
 
   describe('POST /api/auth/signup', () => {
-    test('should register a new user with email, name, and mpin', async () => {
+    test('should initiate signup and verify user with email and OTP', async () => {
       const res = await request(app)
         .post('/api/auth/signup')
         .send({ email: 'newuser@example.com', name: 'New User', mpin: '123456' });
 
-      expect(res.statusCode).toBe(201);
-      expect(res.body.token).toBeDefined();
-      expect(res.body.user.name).toBe('New User');
-      expect(res.body.user.email).toBe('newuser@example.com');
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe('otp_required');
+      expect(res.body.email).toBe('newuser@example.com');
+      expect(res.body.type).toBe('signup');
+
+      const otpRecord = await Otp.findOne({ email: 'newuser@example.com', type: 'signup' });
+      expect(otpRecord).toBeDefined();
+      expect(otpRecord.otp).toBeDefined();
+
+      const verifyRes = await request(app)
+        .post('/api/auth/verify')
+        .send({ email: 'newuser@example.com', otp: otpRecord.otp, type: 'signup' });
+
+      expect(verifyRes.statusCode).toBe(200);
+      expect(verifyRes.body.token).toBeDefined();
+      expect(verifyRes.body.user.name).toBe('New User');
+      expect(verifyRes.body.user.email).toBe('newuser@example.com');
 
       const createdUser = await User.findOne({ email: 'newuser@example.com' });
       expect(createdUser).toBeDefined();
@@ -72,7 +89,7 @@ describe('Authentication API Integration Tests', () => {
   });
 
   describe('POST /api/auth/login', () => {
-    test('should authenticate and return token for valid credentials', async () => {
+    test('should authenticate login and return JWT after OTP verification', async () => {
       const user = new User({ email: 'registered@example.com', name: 'Registered User', mpin: '112233' });
       await user.save();
 
@@ -81,8 +98,20 @@ describe('Authentication API Integration Tests', () => {
         .send({ email: 'registered@example.com', mpin: '112233' });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.token).toBeDefined();
-      expect(res.body.user.name).toBe('Registered User');
+      expect(res.body.status).toBe('otp_required');
+      expect(res.body.email).toBe('registered@example.com');
+
+      const otpRecord = await Otp.findOne({ email: 'registered@example.com', type: 'login' });
+      expect(otpRecord).toBeDefined();
+      expect(otpRecord.otp).toBeDefined();
+
+      const verifyRes = await request(app)
+        .post('/api/auth/verify')
+        .send({ email: 'registered@example.com', otp: otpRecord.otp, type: 'login' });
+
+      expect(verifyRes.statusCode).toBe(200);
+      expect(verifyRes.body.token).toBeDefined();
+      expect(verifyRes.body.user.name).toBe('Registered User');
     });
 
     test('should reject invalid mpin', async () => {
@@ -120,12 +149,19 @@ describe('Authentication API Integration Tests', () => {
       });
       await registeredUser.save();
 
-      // Sign in to get token
-      const res = await request(app)
+      // Sign in to trigger OTP
+      await request(app)
         .post('/api/auth/login')
         .send({ email: 'profile-owner@example.com', mpin: '112233' });
 
-      userToken = res.body.token;
+      const otpRecord = await Otp.findOne({ email: 'profile-owner@example.com', type: 'login' });
+
+      // Verify OTP to get token
+      const verifyRes = await request(app)
+        .post('/api/auth/verify')
+        .send({ email: 'profile-owner@example.com', otp: otpRecord.otp, type: 'login' });
+
+      userToken = verifyRes.body.token;
     });
 
     test('should fetch currently logged in user profile', async () => {

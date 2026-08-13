@@ -18,16 +18,8 @@ async function sendOtpEmail(email, otp, type) {
 
   const typeLabel = type === 'signup' ? 'Sign Up' : 'Log In';
 
-  // Fallback for local development when Brevo key is not configured
-  if (!apiKey || apiKey === 'your-brevo-api-key') {
-    console.log('\n==================================================');
-    console.log(`[DEV EMAIL SERVICE FALLBACK]`);
-    console.log(`To: ${email}`);
-    console.log(`Subject: FoodTrail ${typeLabel} Verification Code`);
-    console.log(`OTP Code: ${otp}`);
-    console.log(`Expires in: 10 minutes`);
-    console.log('==================================================\n');
-    return true;
+  if (!apiKey) {
+    throw new Error('Brevo API key (BREVO_API_KEY) is not configured in the environment variables.');
   }
 
   const endpoint = 'https://api.brevo.com/v3/smtp/email';

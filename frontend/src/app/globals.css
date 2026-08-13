@@ -60,6 +60,11 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+button, a, select, input[type="submit"] {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;

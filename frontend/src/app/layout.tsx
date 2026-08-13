@@ -7,6 +7,7 @@ import type { Metadata } from 'next';
 import PwaRegister from './components/PwaRegister';
 import StoreProvider from './components/StoreProvider';
 import Navbar from './components/Navbar';
+import BottomNav from './components/BottomNav';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -37,11 +38,13 @@ export default function RootLayout({
           <div className="flex flex-col min-h-screen">
             <Navbar />
             
-            <main className="flex-grow p-6 w-full max-w-[1200px] mx-auto">
+            <main className="flex-grow p-4 pb-28 md:p-6 w-full max-w-[1200px] mx-auto">
               {children}
             </main>
             
-            <footer className="p-8 md:px-6 text-center border-t border-white/8 text-text-muted text-xs md:text-sm bg-bg-secondary">
+            <BottomNav />
+            
+            <footer className="p-8 md:px-6 text-center border-t border-white/8 text-text-muted text-xs md:text-sm bg-bg-secondary pb-32 md:pb-8">
               <p>© {new Date().getFullYear()} FoodTrail. Designed for walking food tours.</p>
               <p style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}>PWA Installable App for tourists & locals.</p>
             </footer>

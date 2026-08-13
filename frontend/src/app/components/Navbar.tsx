@@ -54,7 +54,7 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 px-4 md:px-6 py-4 md:py-3 flex flex-col md:flex-row justify-between items-center border-b border-white/8 glass-panel gap-4 md:gap-0">
+    <header className="sticky top-0 z-50 px-4 md:px-6 py-3.5 flex justify-between items-center border-b border-white/8 glass-panel">
       <div className="flex items-center gap-3">
         <Link href="/" className="flex items-center gap-1.5 text-2xl font-extrabold text-text-primary hover:opacity-90">
           <MapPin className="w-6 h-6 text-accent shrink-0" />
@@ -73,7 +73,7 @@ export default function Navbar() {
         )}
       </div>
       
-      <nav className="flex flex-wrap items-center w-full md:w-auto justify-around md:justify-end gap-1 md:gap-4">
+      <nav className="hidden md:flex flex-wrap items-center w-full md:w-auto justify-around md:justify-end gap-1 md:gap-4">
         <Link href="/" className="flex flex-col md:flex-row items-center gap-1.5 text-xs md:text-[0.95rem] font-medium text-text-secondary p-[0.35rem] md:px-3 md:py-2 rounded-sm transition-all duration-300 hover:text-text-primary hover:bg-bg-tertiary">
           <Search className="w-4 h-4 shrink-0" />
           <span>Dish Search</span>

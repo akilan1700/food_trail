@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // File: src/app/settings/page.tsx
 // Description: User Settings page enabling updates to user name, notifications, theme, and profile details.
 // Author: Akilan M
@@ -5,16 +6,22 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectCurrentUser, updateUserSettings } from '../services/authSlice';
 import { updateProfile } from '../services/api';
 import AuthForm from '../components/AuthForm';
+import LoadingScreen from '../components/LoadingScreen';
 import { Settings, Bell, Palette, User, Check, X, ShieldAlert } from 'lucide-react';
 
 export default function SettingsPage() {
   const user = useAppSelector(selectCurrentUser);
   const dispatch = useAppDispatch();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Form states initialized from user object
   const [name, setName] = useState(user?.name || '');
@@ -98,6 +105,10 @@ export default function SettingsPage() {
   const handleDismissSuccess = () => {
     setSuccess(false);
   };
+
+  if (!mounted) {
+    return <LoadingScreen />;
+  }
 
   if (!user) {
     return (

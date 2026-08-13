@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // File: src/app/profile/page.tsx
 // Description: User profile page displaying authenticated session credentials, trip stats, and sign out controls.
 // Author: Akilan M
@@ -5,10 +6,12 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectCurrentUser, clearCredentials } from '../services/authSlice';
 import { selectSavedRestIds } from '../services/tripSlice';
 import AuthForm from '../components/AuthForm';
+import LoadingScreen from '../components/LoadingScreen';
 import { LogOut, Calendar, Map, CheckCircle2, Award, Heart } from 'lucide-react';
 import Link from 'next/link';
 
@@ -16,10 +19,19 @@ export default function ProfilePage() {
   const user = useAppSelector(selectCurrentUser);
   const savedRestIds = useAppSelector(selectSavedRestIds);
   const dispatch = useAppDispatch();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = () => {
     dispatch(clearCredentials());
   };
+
+  if (!mounted) {
+    return <LoadingScreen />;
+  }
 
   if (!user) {
     return (

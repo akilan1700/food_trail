@@ -14,6 +14,7 @@ const restaurantRoutes = require('./routes/restaurantRoutes');
 const trailRoutes = require('./routes/trailRoutes');
 const tripRoutes = require('./routes/tripRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/trails', trailRoutes);
 app.use('/api/trips', tripRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

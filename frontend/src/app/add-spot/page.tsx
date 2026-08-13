@@ -7,7 +7,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Navigation, Plus, X, ArrowLeft, Loader2 } from 'lucide-react';
+import { Navigation, Plus, X, ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 import { createRestaurant } from '../services/api';

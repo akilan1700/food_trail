@@ -3,6 +3,8 @@
 // Author: Akilan M
 // Created: 2026-08-12T14:21:00+05:30
 
+import { User, UserSettings, UserProfileDetails } from './authSlice';
+
 export interface Restaurant {
   _id: string;
   name: string;
@@ -60,9 +62,29 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
  */
 async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-  const response = await fetch(url, options);
+  
+  const headers = new Headers(options?.headers);
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('foodtrail_token');
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    let errorMessage = `API error: ${response.status} ${response.statusText}`;
+    try {
+      const errRes = await response.clone().json();
+      if (errRes?.error?.message) {
+        errorMessage = errRes.error.message;
+      }
+    } catch {}
+    throw new Error(errorMessage);
   }
   return response.json() as Promise<T>;
 }
@@ -242,5 +264,60 @@ export async function createDish(dishData: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(dishData),
+  });
+}
+
+/**
+ * Request OTP for user registration.
+ */
+export async function requestSignupOtp(email: string, name: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/auth/signup/request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, name }),
+  });
+}
+
+/**
+ * Request OTP for user login.
+ */
+export async function requestLoginOtp(email: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/auth/login/request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+}
+
+/**
+ * Verify OTP and complete authentication.
+ */
+export async function verifyOtp(email: string, otp: string): Promise<{ token: string; user: User }> {
+  return apiRequest<{ token: string; user: User }>('/auth/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp }),
+  });
+}
+
+/**
+ * Fetch authenticated user profile.
+ */
+export async function fetchProfile(): Promise<{ user: User }> {
+  return apiRequest<{ user: User }>('/auth/profile');
+}
+
+/**
+ * Update authenticated user name, settings, and/or profile details.
+ */
+export async function updateProfile(
+  name?: string,
+  settings?: Partial<UserSettings>,
+  profile?: Partial<UserProfileDetails>
+): Promise<{ user: User }> {
+  return apiRequest<{ user: User }>('/auth/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, settings, profile }),
   });
 }

@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Dish, getDishes, searchDishes, formatPhotoUrl } from './services/api';
 import { useAppDispatch, useAppSelector } from './services/hooks';
 import { selectSavedRestIds, addRestaurant, removeRestaurant } from './services/tripSlice';
@@ -252,13 +253,28 @@ export default function HomePage() {
             })}
           </div>
         ) : (
-          <div className="text-center py-16 px-8 bg-bg-tertiary/20 rounded-md border border-dashed border-white/8">
-            <Utensils className="w-12 h-12 text-text-muted mx-auto mb-4" />
-            <h3 className="text-xl font-bold mb-2">No exact dishes found</h3>
-            <p className="text-text-secondary text-sm max-w-[400px] mx-auto">
-              We couldn&apos;t find a matching dish in Puducherry for that query. Try searching &quot;Almond Croissant&quot; or &quot;Pizza&quot;.
-            </p>
-          </div>
+          searchQuery || selectedVibes.length > 0 ? (
+            <div className="text-center py-16 px-8 bg-bg-tertiary/20 rounded-md border border-dashed border-white/8">
+              <Utensils className="w-12 h-12 text-text-muted mx-auto mb-4" />
+              <h3 className="text-xl font-bold mb-2">No exact dishes found</h3>
+              <p className="text-text-secondary text-sm max-w-[400px] mx-auto">
+                We couldn&apos;t find a matching dish in Puducherry for that query. Try adjusting your search or filters.
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-16 px-8 bg-bg-tertiary/20 rounded-md border border-dashed border-white/8">
+              <Utensils className="w-12 h-12 text-text-muted mx-auto mb-4" />
+              <h3 className="text-xl font-bold mb-2">No spots added yet</h3>
+              <p className="text-text-secondary text-sm max-w-[400px] mx-auto mb-6">
+                Your culinary map is a clean slate! Add a dining spot and its signature dishes to start building food trails.
+              </p>
+              <Link href="/add-spot">
+                <span className="inline-block bg-accent hover:bg-accent-hover text-white font-semibold px-6 py-3 rounded-sm transition-all duration-300 transform hover:scale-[1.02] cursor-pointer">
+                  Add New Dining Spot
+                </span>
+              </Link>
+            </div>
+          )
         )}
       </section>
 

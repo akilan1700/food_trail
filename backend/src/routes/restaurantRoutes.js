@@ -142,6 +142,20 @@ router.post('/', async (req, res, next) => {
       });
     }
 
+    let createdBy = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const token = authHeader.split(' ')[1];
+        const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
+        const decoded = jwt.verify(token, JWT_SECRET);
+        createdBy = decoded.userId;
+      } catch (err) {
+        // Ignore invalid token for public route
+      }
+    }
+
     const restaurant = new Restaurant({
       name,
       description,
@@ -153,6 +167,7 @@ router.post('/', async (req, res, next) => {
       },
       vibeTags: Array.isArray(vibeTags) ? vibeTags : [],
       photoUrl,
+      createdBy,
     });
 
     await restaurant.save();

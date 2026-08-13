@@ -30,29 +30,33 @@ describe('Authentication API Integration Tests', () => {
     await UserProfile.deleteMany({});
   });
 
-  describe('POST /api/auth/signup/request', () => {
-    test('should generate and send OTP for new email', async () => {
+  describe('POST /api/auth/signup', () => {
+    test('should register a new user with email, name, and mpin', async () => {
       const res = await request(app)
-        .post('/api/auth/signup/request')
-        .send({ email: 'newuser@example.com', name: 'New User' });
+        .post('/api/auth/signup')
+        .send({ email: 'newuser@example.com', name: 'New User', mpin: '123456' });
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toContain('Verification OTP sent');
+      expect(res.statusCode).toBe(201);
+      expect(res.body.token).toBeDefined();
+      expect(res.body.user.name).toBe('New User');
+      expect(res.body.user.email).toBe('newuser@example.com');
 
-      const otpRecord = await Otp.findOne({ email: 'newuser@example.com' });
-      expect(otpRecord).toBeDefined();
-      expect(otpRecord.otp).toHaveLength(6);
-      expect(otpRecord.name).toBe('New User');
-      expect(otpRecord.type).toBe('signup');
+      const createdUser = await User.findOne({ email: 'newuser@example.com' });
+      expect(createdUser).toBeDefined();
+      expect(createdUser.name).toBe('New User');
+      expect(createdUser.compareMpin('123456')).toBe(true);
+
+      const createdProfile = await UserProfile.findOne({ userId: createdUser._id });
+      expect(createdProfile).toBeDefined();
     });
 
     test('should block signup if email already exists', async () => {
-      const user = new User({ email: 'existing@example.com', name: 'Existing User' });
+      const user = new User({ email: 'existing@example.com', name: 'Existing User', mpin: '1234' });
       await user.save();
 
       const res = await request(app)
-        .post('/api/auth/signup/request')
-        .send({ email: 'existing@example.com', name: 'Duplicate User' });
+        .post('/api/auth/signup')
+        .send({ email: 'existing@example.com', name: 'Duplicate User', mpin: '5678' });
 
       expect(res.statusCode).toBe(400);
       expect(res.body.error.message).toContain('already registered');
@@ -60,110 +64,46 @@ describe('Authentication API Integration Tests', () => {
 
     test('should validate input parameters', async () => {
       const res = await request(app)
-        .post('/api/auth/signup/request')
-        .send({ email: 'invalid-email', name: '' });
+        .post('/api/auth/signup')
+        .send({ email: 'invalid-email', name: '', mpin: '12' });
 
       expect(res.statusCode).toBe(400);
     });
   });
 
-  describe('POST /api/auth/login/request', () => {
-    test('should send OTP if user exists', async () => {
-      const user = new User({ email: 'registered@example.com', name: 'Registered User' });
+  describe('POST /api/auth/login', () => {
+    test('should authenticate and return token for valid credentials', async () => {
+      const user = new User({ email: 'registered@example.com', name: 'Registered User', mpin: '112233' });
       await user.save();
 
       const res = await request(app)
-        .post('/api/auth/login/request')
-        .send({ email: 'registered@example.com' });
-
-      expect(res.statusCode).toBe(200);
-
-      const otpRecord = await Otp.findOne({ email: 'registered@example.com' });
-      expect(otpRecord).toBeDefined();
-      expect(otpRecord.type).toBe('login');
-    });
-
-    test('should return 404 if user not registered', async () => {
-      const res = await request(app)
-        .post('/api/auth/login/request')
-        .send({ email: 'nonexistent@example.com' });
-
-      expect(res.statusCode).toBe(404);
-      expect(res.body.error.message).toContain('User not found');
-    });
-  });
-
-  describe('POST /api/auth/verify', () => {
-    test('should verify correct OTP and register new user on signup', async () => {
-      // Setup OTP record
-      const otp = '999999';
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-      const otpRecord = new Otp({
-        email: 'verify-signup@example.com',
-        otp,
-        type: 'signup',
-        name: 'Verify Me',
-        expiresAt,
-      });
-      await otpRecord.save();
-
-      const res = await request(app)
-        .post('/api/auth/verify')
-        .send({ email: 'verify-signup@example.com', otp });
+        .post('/api/auth/login')
+        .send({ email: 'registered@example.com', mpin: '112233' });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.token).toBeDefined();
-      expect(res.body.user.name).toBe('Verify Me');
-      expect(res.body.user.email).toBe('verify-signup@example.com');
-      expect(res.body.user.profile).toBeDefined();
-
-      const createdUser = await User.findOne({ email: 'verify-signup@example.com' });
-      expect(createdUser).toBeDefined();
-      expect(createdUser.name).toBe('Verify Me');
-
-      const createdProfile = await UserProfile.findOne({ userId: createdUser._id });
-      expect(createdProfile).toBeDefined();
-      expect(createdProfile.phoneNumber).toBe('');
+      expect(res.body.user.name).toBe('Registered User');
     });
 
-    test('should verify correct OTP and return token on login', async () => {
-      const user = new User({ email: 'verify-login@example.com', name: 'Login Me' });
+    test('should reject invalid mpin', async () => {
+      const user = new User({ email: 'registered@example.com', name: 'Registered User', mpin: '112233' });
       await user.save();
 
-      const otp = '888888';
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-      const otpRecord = new Otp({
-        email: 'verify-login@example.com',
-        otp,
-        type: 'login',
-        expiresAt,
-      });
-      await otpRecord.save();
-
       const res = await request(app)
-        .post('/api/auth/verify')
-        .send({ email: 'verify-login@example.com', otp });
+        .post('/api/auth/login')
+        .send({ email: 'registered@example.com', mpin: '999999' });
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.token).toBeDefined();
-      expect(res.body.user.name).toBe('Login Me');
+      expect(res.statusCode).toBe(401);
+      expect(res.body.error.message).toContain('Invalid email or MPIN');
     });
 
-    test('should reject invalid OTP', async () => {
-      const otpRecord = new Otp({
-        email: 'bad@example.com',
-        otp: '123456',
-        type: 'login',
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-      });
-      await otpRecord.save();
-
+    test('should return 401 if user not registered', async () => {
       const res = await request(app)
-        .post('/api/auth/verify')
-        .send({ email: 'bad@example.com', otp: '111111' });
+        .post('/api/auth/login')
+        .send({ email: 'nonexistent@example.com', mpin: '1234' });
 
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error.message).toContain('Invalid');
+      expect(res.statusCode).toBe(401);
+      expect(res.body.error.message).toContain('Invalid email or MPIN');
     });
   });
 
@@ -175,23 +115,15 @@ describe('Authentication API Integration Tests', () => {
       registeredUser = new User({
         email: 'profile-owner@example.com',
         name: 'Profile Owner',
+        mpin: '112233',
         settings: { notificationsEnabled: true, preferredTheme: 'Dark' },
       });
       await registeredUser.save();
 
       // Sign in to get token
-      const otp = '112233';
-      const otpRecord = new Otp({
-        email: 'profile-owner@example.com',
-        otp,
-        type: 'login',
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-      });
-      await otpRecord.save();
-
       const res = await request(app)
-        .post('/api/auth/verify')
-        .send({ email: 'profile-owner@example.com', otp });
+        .post('/api/auth/login')
+        .send({ email: 'profile-owner@example.com', mpin: '112233' });
 
       userToken = res.body.token;
     });
@@ -249,6 +181,30 @@ describe('Authentication API Integration Tests', () => {
       expect(new Date(dbProfile.dateOfBirth).toISOString().split('T')[0]).toBe('1995-05-15');
       expect(dbProfile.city).toBe('Pondicherry');
       expect(dbProfile.favoriteCuisine).toBe('French-Creole');
+    });
+
+    test('should record completed walks and update user stats', async () => {
+      const trailId = new mongoose.Types.ObjectId();
+      const res = await request(app)
+        .post('/api/auth/profile/complete-walk')
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ trailId: trailId.toString() });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.user.profile.walksCompleted).toBe(1);
+
+      // Verify in db user profile
+      const dbProfile = await UserProfile.findOne({ userId: registeredUser._id });
+      expect(dbProfile.walksCompletedCount).toBe(1);
+      expect(dbProfile.completedTrails[0].toString()).toBe(trailId.toString());
+    });
+
+    test('should reject unauthenticated completed walk records', async () => {
+      const res = await request(app)
+        .post('/api/auth/profile/complete-walk')
+        .send({ trailId: new mongoose.Types.ObjectId().toString() });
+
+      expect(res.statusCode).toBe(401);
     });
   });
 });

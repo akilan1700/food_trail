@@ -8,7 +8,6 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Otp = require('../models/Otp');
 const UserProfile = require('../models/UserProfile');
-const { sendOtpEmail } = require('../services/emailService');
 const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -20,12 +19,12 @@ const isValidEmail = (email) => {
 };
 
 /**
- * @route POST /api/auth/signup/request
- * @desc Request OTP for new user registration
+ * @route POST /api/auth/signup
+ * @desc Sign up with email, name, and mpin
  */
-router.post('/signup/request', async (req, res, next) => {
+router.post('/signup', async (req, res, next) => {
   try {
-    const { email, name } = req.body;
+    const { email, name, mpin } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: { message: 'Name is required' } });
@@ -33,6 +32,10 @@ router.post('/signup/request', async (req, res, next) => {
 
     if (!email || !isValidEmail(email)) {
       return res.status(400).json({ error: { message: 'A valid email address is required' } });
+    }
+
+    if (!mpin || typeof mpin !== 'string' || !/^\d{4}$|^\d{6}$/.test(mpin)) {
+      return res.status(400).json({ error: { message: 'MPIN must be a 4-digit or 6-digit number' } });
     }
 
     const trimmedEmail = email.trim().toLowerCase();
@@ -43,137 +46,70 @@ router.post('/signup/request', async (req, res, next) => {
       return res.status(400).json({ error: { message: 'Email address is already registered' } });
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
-
-    // Clear old OTPs and save new one
-    await Otp.deleteMany({ email: trimmedEmail });
-    const newOtp = new Otp({
+    const user = new User({
       email: trimmedEmail,
-      otp,
-      type: 'signup',
       name: name.trim(),
-      expiresAt,
+      mpin,
+      settings: {
+        notificationsEnabled: true,
+        preferredTheme: 'Dark',
+      },
     });
-    await newOtp.save();
+    await user.save();
 
-    // Send email
-    await sendOtpEmail(trimmedEmail, otp, 'signup');
+    // Create linked profile
+    const userProfile = new UserProfile({
+      userId: user._id,
+      phoneNumber: '',
+      bio: '',
+      dateOfBirth: null,
+      city: '',
+      favoriteCuisine: '',
+    });
+    await userProfile.save();
 
-    res.status(200).json({ message: 'Verification OTP sent to your email.' });
+    // Generate JWT
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+
+    const formattedUser = await formatUserResponse(user, userProfile);
+    res.status(201).json({
+      token,
+      user: formattedUser,
+    });
   } catch (error) {
     next(error);
   }
 });
 
 /**
- * @route POST /api/auth/login/request
- * @desc Request OTP for existing user sign in
+ * @route POST /api/auth/login
+ * @desc Log in with email and mpin
  */
-router.post('/login/request', async (req, res, next) => {
+router.post('/login', async (req, res, next) => {
   try {
-    const { email } = req.body;
+    const { email, mpin } = req.body;
 
     if (!email || !isValidEmail(email)) {
       return res.status(400).json({ error: { message: 'A valid email address is required' } });
     }
 
+    if (!mpin) {
+      return res.status(400).json({ error: { message: 'MPIN is required' } });
+    }
+
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Check if user exists
+    // Find user
     const user = await User.findOne({ email: trimmedEmail });
     if (!user) {
-      return res.status(404).json({ error: { message: 'User not found. Please sign up first.' } });
+      return res.status(401).json({ error: { message: 'Invalid email or MPIN' } });
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // Clear old OTPs and save new one
-    await Otp.deleteMany({ email: trimmedEmail });
-    const newOtp = new Otp({
-      email: trimmedEmail,
-      otp,
-      type: 'login',
-      expiresAt,
-    });
-    await newOtp.save();
-
-    // Send email
-    await sendOtpEmail(trimmedEmail, otp, 'login');
-
-    res.status(200).json({ message: 'Verification OTP sent to your email.' });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
- * @route POST /api/auth/verify
- * @desc Verify OTP and complete authentication (issue JWT)
- */
-router.post('/verify', async (req, res, next) => {
-  try {
-    const { email, otp } = req.body;
-
-    if (!email || !otp) {
-      return res.status(400).json({ error: { message: 'Email and verification OTP are required' } });
+    // Verify MPIN
+    const isMatch = user.compareMpin(mpin);
+    if (!isMatch) {
+      return res.status(401).json({ error: { message: 'Invalid email or MPIN' } });
     }
-
-    const trimmedEmail = email.trim().toLowerCase();
-    const cleanOtp = otp.trim();
-
-    // Find the latest OTP record
-    const record = await Otp.findOne({ email: trimmedEmail, otp: cleanOtp });
-    if (!record) {
-      return res.status(400).json({ error: { message: 'Invalid verification code' } });
-    }
-
-    // Explicit expiration check
-    if (record.expiresAt < new Date()) {
-      await Otp.deleteOne({ _id: record._id });
-      return res.status(400).json({ error: { message: 'Verification code has expired' } });
-    }
-
-    let user;
-
-    if (record.type === 'signup') {
-      // Create user if not already exists (safe checks)
-      user = await User.findOne({ email: trimmedEmail });
-      if (!user) {
-        user = new User({
-          email: trimmedEmail,
-          name: record.name,
-          settings: {
-            notificationsEnabled: true,
-            preferredTheme: 'Dark',
-          },
-        });
-        await user.save();
-
-        // Create linked profile
-        const userProfile = new UserProfile({
-          userId: user._id,
-          phoneNumber: '',
-          bio: '',
-          dateOfBirth: null,
-          city: '',
-          favoriteCuisine: '',
-        });
-        await userProfile.save();
-      }
-    } else {
-      // Fetch user for login
-      user = await User.findOne({ email: trimmedEmail });
-      if (!user) {
-        return res.status(404).json({ error: { message: 'User account not found' } });
-      }
-    }
-
-    // Authenticated! Clean up OTP record
-    await Otp.deleteMany({ email: trimmedEmail });
 
     // Generate JWT
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
@@ -184,22 +120,10 @@ router.post('/verify', async (req, res, next) => {
       await userProfile.save();
     }
 
+    const formattedUser = await formatUserResponse(user, userProfile);
     res.status(200).json({
       token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        settings: user.settings,
-        createdAt: user.createdAt,
-        profile: {
-          phoneNumber: userProfile.phoneNumber || '',
-          bio: userProfile.bio || '',
-          dateOfBirth: userProfile.dateOfBirth,
-          city: userProfile.city || '',
-          favoriteCuisine: userProfile.favoriteCuisine || '',
-        },
-      },
+      user: formattedUser,
     });
   } catch (error) {
     next(error);
@@ -218,21 +142,9 @@ router.get('/profile', authMiddleware, async (req, res, next) => {
       await userProfile.save();
     }
 
+    const formattedUser = await formatUserResponse(req.user, userProfile);
     res.status(200).json({
-      user: {
-        id: req.user._id,
-        email: req.user.email,
-        name: req.user.name,
-        settings: req.user.settings,
-        createdAt: req.user.createdAt,
-        profile: {
-          phoneNumber: userProfile.phoneNumber || '',
-          bio: userProfile.bio || '',
-          dateOfBirth: userProfile.dateOfBirth,
-          city: userProfile.city || '',
-          favoriteCuisine: userProfile.favoriteCuisine || '',
-        },
-      },
+      user: formattedUser,
     });
   } catch (error) {
     next(error);
@@ -293,25 +205,77 @@ router.put('/profile', authMiddleware, async (req, res, next) => {
       await userProfile.save();
     }
 
+    const formattedUser = await formatUserResponse(user, userProfile);
     res.status(200).json({
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        settings: user.settings,
-        createdAt: user.createdAt,
-        profile: {
-          phoneNumber: userProfile.phoneNumber || '',
-          bio: userProfile.bio || '',
-          dateOfBirth: userProfile.dateOfBirth,
-          city: userProfile.city || '',
-          favoriteCuisine: userProfile.favoriteCuisine || '',
-        },
-      },
+      user: formattedUser,
     });
   } catch (error) {
     next(error);
   }
 });
+
+/**
+ * @route POST /api/auth/profile/complete-walk
+ * @desc Mark a walking food trail as completed
+ */
+router.post('/profile/complete-walk', authMiddleware, async (req, res, next) => {
+  try {
+    const { trailId } = req.body;
+
+    let userProfile = await UserProfile.findOne({ userId: req.user._id });
+    if (!userProfile) {
+      userProfile = new UserProfile({ userId: req.user._id });
+    }
+
+    // Increment overall completed walks count
+    userProfile.walksCompletedCount = (userProfile.walksCompletedCount || 0) + 1;
+
+    // Add trailId to completedTrails list if a predefined trail is completed
+    if (trailId) {
+      if (!userProfile.completedTrails) {
+        userProfile.completedTrails = [];
+      }
+      const mongoose = require('mongoose');
+      if (mongoose.Types.ObjectId.isValid(trailId)) {
+        if (!userProfile.completedTrails.includes(trailId)) {
+          userProfile.completedTrails.push(trailId);
+        }
+      }
+    }
+
+    await userProfile.save();
+
+    const formattedUser = await formatUserResponse(req.user, userProfile);
+    res.status(200).json({ user: formattedUser });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Helper to dynamically format user response payload with real database-backed statistics.
+ */
+async function formatUserResponse(user, userProfile) {
+  const Restaurant = require('../models/Restaurant');
+  const cafesDiscovered = await Restaurant.countDocuments({ createdBy: user._id });
+  const walksCompleted = userProfile ? (userProfile.walksCompletedCount || 0) : 0;
+
+  return {
+    id: user._id,
+    email: user.email,
+    name: user.name,
+    settings: user.settings,
+    createdAt: user.createdAt,
+    profile: {
+      phoneNumber: userProfile ? (userProfile.phoneNumber || '') : '',
+      bio: userProfile ? (userProfile.bio || '') : '',
+      dateOfBirth: userProfile ? userProfile.dateOfBirth : null,
+      city: userProfile ? (userProfile.city || '') : '',
+      favoriteCuisine: userProfile ? (userProfile.favoriteCuisine || '') : '',
+      walksCompleted,
+      cafesDiscovered,
+    },
+  };
+}
 
 module.exports = router;

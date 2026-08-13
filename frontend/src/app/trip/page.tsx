@@ -11,8 +11,9 @@ import Link from 'next/link';
 
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectSavedRestIds, selectSavedTrailId, setSavedTrailId, removeRestaurant, clearTrip } from '../services/tripSlice';
-import { Restaurant, Trail, getRestaurants, getTrailDetails, createSharedTrip, formatPhotoUrl, updateRestaurantPhoto } from '../services/api';
-import { Trash2, MessageCircle, MapPin, Star, Bookmark, Camera, PlusCircle } from 'lucide-react';
+import { selectCurrentUser, setCredentials } from '../services/authSlice';
+import { Restaurant, Trail, getRestaurants, getTrailDetails, createSharedTrip, formatPhotoUrl, updateRestaurantPhoto, completeWalk } from '../services/api';
+import { Trash2, MessageCircle, MapPin, Star, Bookmark, Camera, PlusCircle, CheckCircle2 } from 'lucide-react';
 import PhotoUpload from '../components/PhotoUpload';
 import AddDishModal from '../components/AddDishModal';
 
@@ -20,6 +21,7 @@ export default function MyTripPage() {
   const dispatch = useAppDispatch();
   const savedRestIds = useAppSelector(selectSavedRestIds);
   const savedTrailId = useAppSelector(selectSavedTrailId);
+  const user = useAppSelector(selectCurrentUser);
   const [savedRestaurants, setSavedRestaurants] = useState<Restaurant[]>([]);
   const [parentTrail, setParentTrail] = useState<Trail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +30,8 @@ export default function MyTripPage() {
   
   const [shareLink, setShareLink] = useState('');
   const [shareLoading, setShareLoading] = useState(false);
+  const [completeLoading, setCompleteLoading] = useState(false);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
   // Fetch parent trail details if trail ID is saved
   useEffect(() => {
@@ -115,6 +119,26 @@ export default function MyTripPage() {
     alert('Share link copied to clipboard!');
   };
 
+  const handleCompleteWalk = async () => {
+    if (!user) {
+      alert('Please log in to complete walks and track your statistics!');
+      return;
+    }
+    
+    setCompleteLoading(true);
+    try {
+      const data = await completeWalk(savedTrailId || undefined);
+      dispatch(setCredentials({ user: data.user, token: localStorage.getItem('foodtrail_token') || '' }));
+      setShowSuccessBanner(true);
+      dispatch(clearTrip());
+    } catch (err) {
+      console.error('Failed to complete walk:', err);
+      alert('Failed to save completed walk to profile.');
+    } finally {
+      setCompleteLoading(false);
+    }
+  };
+
   const getStatusDotClass = (status: string) => {
     switch (status) {
       case 'Plenty of Tables': return 'status-dot-green';
@@ -130,6 +154,27 @@ export default function MyTripPage() {
         <h1 className="text-[2.25rem] font-extrabold mb-2">My Walking Food Trail</h1>
         <p className="text-text-secondary">Curate your custom walkable trail and keep track of live tables.</p>
       </section>
+
+      {showSuccessBanner && (
+        <div className="mb-6 p-5 bg-status-green/10 border border-status-green/20 rounded-md text-left flex justify-between items-center animate-fade-in">
+          <div>
+            <h3 className="text-lg font-bold text-status-green flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 shrink-0" />
+              <span>Walk Completed!</span>
+            </h3>
+            <p className="text-sm text-text-secondary mt-1">
+              Congratulations! Your completed walk has been recorded in your profile.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer text-sm font-bold"
+            onClick={() => setShowSuccessBanner(false)}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem' }}>
@@ -178,6 +223,15 @@ export default function MyTripPage() {
             >
               <MessageCircle className="w-4 h-4 shrink-0" />
               <span>{shareLoading ? 'Generating...' : 'Share on WhatsApp'}</span>
+            </button>
+            <button
+              type="button"
+              className="bg-accent text-white border-none rounded-sm px-5 py-3 font-bold cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(244,63,94,0.25)] hover:bg-accent-hover hover:scale-[1.02]"
+              onClick={handleCompleteWalk}
+              disabled={completeLoading}
+            >
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{completeLoading ? 'Completing...' : 'Complete Walk'}</span>
             </button>
           </div>
 

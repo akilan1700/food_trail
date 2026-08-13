@@ -107,7 +107,7 @@ export default function TrailsPage() {
           <div className="status-dot status-dot-green" style={{ width: 16, height: 16 }}></div>
           <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>Loading trails...</p>
         </div>
-      ) : (
+      ) : trails.length > 0 ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
             {trails.map((trail) => {
@@ -231,6 +231,19 @@ export default function TrailsPage() {
             </div>
           )}
         </>
+      ) : (
+        <div className="text-center py-16 px-8 bg-bg-tertiary/20 rounded-md border border-dashed border-white/8 mb-12 animate-fade-in">
+          <Footprints className="w-12 h-12 text-text-muted mx-auto mb-4" />
+          <h3 className="text-xl font-bold mb-2">No walking trails created yet</h3>
+          <p className="text-text-secondary text-sm max-w-[400px] mx-auto mb-6">
+            Build your own walking food route through Puducherry using the creator.
+          </p>
+          <Link href="/trails/create">
+            <span className="inline-block bg-accent hover:bg-accent-hover text-white font-semibold px-6 py-3 rounded-sm transition-all duration-300 transform hover:scale-[1.02] cursor-pointer">
+              Create Walking Trail
+            </span>
+          </Link>
+        </div>
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // File: src/app/components/Navbar.tsx
 // Description: Interactive navigation header component adapting to authenticated user session state.
 // Author: Akilan M
@@ -5,6 +6,7 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAppSelector } from '../services/hooks';
 import { selectCurrentUser } from '../services/authSlice';
@@ -13,6 +15,11 @@ import { Compass, Search, MapPin, PlusCircle, User, Settings } from 'lucide-reac
 
 export default function Navbar() {
   const user = useAppSelector(selectCurrentUser);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 px-4 md:px-6 py-4 md:py-3 flex flex-col md:flex-row justify-between items-center border-b border-white/8 glass-panel gap-4 md:gap-0">
@@ -26,19 +33,23 @@ export default function Navbar() {
           <Search className="w-4 h-4 shrink-0" />
           <span>Dish Search</span>
         </Link>
-        <Link href="/trails" className="flex flex-col md:flex-row items-center gap-1.5 text-xs md:text-[0.95rem] font-medium text-text-secondary p-[0.35rem] md:px-3 md:py-2 rounded-sm transition-all duration-300 hover:text-text-primary hover:bg-bg-tertiary">
-          <Compass className="w-4 h-4 shrink-0" />
-          <span>Walking Trails</span>
-        </Link>
-        <Link href="/add-spot" className="flex flex-col md:flex-row items-center gap-1.5 text-xs md:text-[0.95rem] font-medium text-text-secondary p-[0.35rem] md:px-3 md:py-2 rounded-sm transition-all duration-300 hover:text-text-primary hover:bg-bg-tertiary">
-          <PlusCircle className="w-4 h-4 shrink-0" />
-          <span>Add Spot</span>
-        </Link>
-        <TripLink />
+        {mounted && user && (
+          <>
+            <Link href="/trails" className="flex flex-col md:flex-row items-center gap-1.5 text-xs md:text-[0.95rem] font-medium text-text-secondary p-[0.35rem] md:px-3 md:py-2 rounded-sm transition-all duration-300 hover:text-text-primary hover:bg-bg-tertiary">
+              <Compass className="w-4 h-4 shrink-0" />
+              <span>Walking Trails</span>
+            </Link>
+            <Link href="/add-spot" className="flex flex-col md:flex-row items-center gap-1.5 text-xs md:text-[0.95rem] font-medium text-text-secondary p-[0.35rem] md:px-3 md:py-2 rounded-sm transition-all duration-300 hover:text-text-primary hover:bg-bg-tertiary">
+              <PlusCircle className="w-4 h-4 shrink-0" />
+              <span>Add Spot</span>
+            </Link>
+            <TripLink />
+          </>
+        )}
 
         <div className="w-px h-5 bg-white/10 hidden md:block"></div>
 
-        {user ? (
+        {mounted && user ? (
           <div className="flex items-center gap-1.5">
             <Link
               href="/profile"

@@ -5,6 +5,8 @@
 
 const mongoose = require('mongoose');
 
+const crypto = require('crypto');
+
 const userSchema = new mongoose.Schema({
   email: {
     type: String,
@@ -18,6 +20,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Name is required'],
     trim: true,
+  },
+  mpin: {
+    type: String,
+    required: [true, 'MPIN is required'],
   },
   settings: {
     notificationsEnabled: {
@@ -33,5 +39,33 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true,
 });
+
+// Hash the MPIN before saving
+userSchema.pre('save', function (next) {
+  if (!this.isModified('mpin')) {
+    return next();
+  }
+  try {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.pbkdf2Sync(this.mpin, salt, 1000, 64, 'sha512').toString('hex');
+    this.mpin = `${salt}:${hash}`;
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Compare entered MPIN with stored hashed MPIN
+userSchema.methods.compareMpin = function (candidateMpin) {
+  try {
+    const parts = this.mpin.split(':');
+    if (parts.length !== 2) return false;
+    const [salt, originalHash] = parts;
+    const hash = crypto.pbkdf2Sync(candidateMpin, salt, 1000, 64, 'sha512').toString('hex');
+    return hash === originalHash;
+  } catch (err) {
+    return false;
+  }
+};
 
 module.exports = mongoose.model('User', userSchema);

@@ -268,35 +268,24 @@ export async function createDish(dishData: {
 }
 
 /**
- * Request OTP for user registration.
+ * Sign up user with email, name, and mpin.
  */
-export async function requestSignupOtp(email: string, name: string): Promise<{ message: string }> {
-  return apiRequest<{ message: string }>('/auth/signup/request', {
+export async function signupUser(email: string, name: string, mpin: string): Promise<{ token: string; user: User }> {
+  return apiRequest<{ token: string; user: User }>('/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, name }),
+    body: JSON.stringify({ email, name, mpin }),
   });
 }
 
 /**
- * Request OTP for user login.
+ * Log in user with email and mpin.
  */
-export async function requestLoginOtp(email: string): Promise<{ message: string }> {
-  return apiRequest<{ message: string }>('/auth/login/request', {
+export async function loginUser(email: string, mpin: string): Promise<{ token: string; user: User }> {
+  return apiRequest<{ token: string; user: User }>('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
-  });
-}
-
-/**
- * Verify OTP and complete authentication.
- */
-export async function verifyOtp(email: string, otp: string): Promise<{ token: string; user: User }> {
-  return apiRequest<{ token: string; user: User }>('/auth/verify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, otp }),
+    body: JSON.stringify({ email, mpin }),
   });
 }
 
@@ -319,5 +308,16 @@ export async function updateProfile(
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, settings, profile }),
+  });
+}
+
+/**
+ * Mark a walking food trail as completed in the database.
+ */
+export async function completeWalk(trailId?: string): Promise<{ user: User }> {
+  return apiRequest<{ user: User }>('/auth/profile/complete-walk', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ trailId }),
   });
 }

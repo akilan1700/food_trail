@@ -37,6 +37,14 @@ const userProfileSchema = new mongoose.Schema({
     trim: true,
     default: '',
   },
+  completedTrails: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Trail',
+  }],
+  walksCompletedCount: {
+    type: Number,
+    default: 0,
+  },
 }, {
   timestamps: true,
 });

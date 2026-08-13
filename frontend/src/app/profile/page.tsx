@@ -87,13 +87,13 @@ export default function ProfilePage() {
         
         <div className="glass-panel p-5 text-center flex flex-col items-center justify-center hover:border-rating/35 transition-all duration-300">
           <CheckCircle2 className="w-6 h-6 text-rating mb-2" />
-          <span className="text-3xl font-black text-text-primary">3</span>
+          <span className="text-3xl font-black text-text-primary">{user.profile?.walksCompleted || 0}</span>
           <span className="text-xs text-text-secondary mt-1 font-semibold">Walks Completed</span>
         </div>
 
         <div className="glass-panel p-5 text-center flex flex-col items-center justify-center hover:border-status-green/35 transition-all duration-300">
           <Award className="w-6 h-6 text-status-green mb-2" />
-          <span className="text-3xl font-black text-text-primary">5</span>
+          <span className="text-3xl font-black text-text-primary">{user.profile?.cafesDiscovered || 0}</span>
           <span className="text-xs text-text-secondary mt-1 font-semibold">Cafes Discovered</span>
         </div>
       </div>

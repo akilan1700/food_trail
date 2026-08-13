@@ -16,6 +16,8 @@ export interface UserProfileDetails {
   dateOfBirth?: string | null;
   city?: string;
   favoriteCuisine?: string;
+  walksCompleted?: number;
+  cafesDiscovered?: number;
 }
 
 export interface User {

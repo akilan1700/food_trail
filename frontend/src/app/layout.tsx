@@ -3,12 +3,20 @@
 // Author: Akilan M
 // Created: 2026-08-11T17:42:17+05:30
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import PwaRegister from './components/PwaRegister';
 import StoreProvider from './components/StoreProvider';
 import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
 import './globals.css';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: 'FoodTrail',

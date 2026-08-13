@@ -52,7 +52,7 @@ export default function RootLayout({
             
             <BottomNav />
             
-            <footer className="p-8 md:px-6 text-center border-t border-white/8 text-text-muted text-xs md:text-sm bg-bg-secondary pb-32 md:pb-8">
+            <footer className="hidden md:block p-8 md:px-6 text-center border-t border-white/8 text-text-muted text-xs md:text-sm bg-bg-secondary">
               <p>© {new Date().getFullYear()} FoodTrail. Designed for walking food tours.</p>
               <p style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}>PWA Installable App for tourists & locals.</p>
             </footer>

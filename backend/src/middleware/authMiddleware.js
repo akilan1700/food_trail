@@ -14,14 +14,26 @@ const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-
  */
 async function authMiddleware(req, res, next) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    let token = null;
+
+    // 1. Try to read from cookies first
+    if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    } 
+    // 2. Fall back to Authorization Header
+    else {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+      }
+    }
+
+    if (!token) {
       return res.status(401).json({
         error: { message: 'Authentication required. Token missing.' }
       });
     }
 
-    const token = authHeader.split(' ')[1];
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET);

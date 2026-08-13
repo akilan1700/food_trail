@@ -73,6 +73,7 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
 
   const response = await fetch(url, {
     ...options,
+    credentials: options?.credentials || 'include',
     headers,
   });
 
@@ -336,7 +337,20 @@ export async function updateProfile(
 export async function completeWalk(trailId?: string): Promise<{ user: User }> {
   return apiRequest<{ user: User }>('/auth/profile/complete-walk', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ trailId }),
+    credentials: 'include',
+  });
+}
+
+/**
+ * Log out user by clearing the authentication cookie on the backend.
+ */
+export async function logoutUser(): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/auth/logout', {
+    method: 'POST',
+    credentials: 'include',
   });
 }

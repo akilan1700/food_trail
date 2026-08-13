@@ -10,16 +10,19 @@ import { useAppDispatch } from '../services/hooks';
 import { setCredentials } from '../services/authSlice';
 import { signupUser, loginUser, verifyOtp } from '../services/api';
 import { Mail, User, Lock, AlertCircle, Sparkles } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface AuthFormProps {
   onSuccess?: () => void;
+  defaultMode?: 'login' | 'signup';
 }
 
-export default function AuthForm({ onSuccess }: AuthFormProps) {
+export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormProps) {
   const dispatch = useAppDispatch();
+  const router = useRouter();
 
   // Mode state: 'login' | 'signup'
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup'>(defaultMode);
 
   // Form fields
   const [email, setEmail] = useState('');
@@ -41,6 +44,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
     setMode(newMode);
     setError(null);
     setMpin('');
+    router.push(newMode === 'login' ? '/login' : '/signup');
   };
 
   // Submit form (signup or login)

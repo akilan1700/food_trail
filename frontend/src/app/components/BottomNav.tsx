@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 // File: src/app/components/BottomNav.tsx
 // Description: Mobile-first sticky bottom navigation bar with active tab indicators and dynamic trip badges.
 // Author: Akilan M
@@ -6,7 +5,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAppSelector } from '../services/hooks';
@@ -24,13 +23,13 @@ export default function BottomNav(): React.ReactElement | null {
   const pathname = usePathname();
   const user = useAppSelector(selectCurrentUser);
   const count = useAppSelector(selectSavedRestCount);
-  const [mounted, setMounted] = useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
+  if (!isClient) {
     return null;
   }
 

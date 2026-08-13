@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 // File: src/app/components/Navbar.tsx
 // Description: Interactive navigation header component adapting to authenticated user session state.
 // Author: Akilan M
@@ -6,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectCurrentUser, selectDetectedCity, setDetectedLocation } from '../services/authSlice';
@@ -17,7 +16,11 @@ export default function Navbar() {
   const dispatch = useAppDispatch();
   const user = useAppSelector(selectCurrentUser);
   const detectedCity = useAppSelector(selectDetectedCity);
-  const [mounted, setMounted] = useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const detectLocation = () => {
     if (typeof window !== 'undefined' && navigator.geolocation) {
@@ -43,7 +46,6 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    setMounted(true);
     if (typeof window !== 'undefined') {
       const cached = localStorage.getItem('foodtrail_detected_city');
       if (!cached) {
@@ -60,7 +62,7 @@ export default function Navbar() {
           <MapPin className="w-6 h-6 text-accent shrink-0" />
           <span>Food<span className="text-accent">Trail</span></span>
         </Link>
-        {mounted && (
+        {isClient && (
           <button
             type="button"
             onClick={detectLocation}
@@ -73,12 +75,25 @@ export default function Navbar() {
         )}
       </div>
       
+      {/* Mobile Settings Icon - visible on mobile only when authenticated */}
+      {isClient && user && (
+        <div className="flex items-center gap-2 md:hidden">
+          <Link
+            href="/settings"
+            title="Settings"
+            className="flex items-center justify-center text-text-secondary hover:text-text-primary p-2.5 rounded-full transition-all duration-300 hover:bg-bg-tertiary/60 shrink-0 border border-white/5"
+          >
+            <Settings className="w-5 h-5 text-text-secondary" />
+          </Link>
+        </div>
+      )}
+
       <nav className="hidden md:flex flex-wrap items-center w-full md:w-auto justify-around md:justify-end gap-1 md:gap-4">
         <Link href="/" className="flex flex-col md:flex-row items-center gap-1.5 text-xs md:text-[0.95rem] font-medium text-text-secondary p-[0.35rem] md:px-3 md:py-2 rounded-sm transition-all duration-300 hover:text-text-primary hover:bg-bg-tertiary">
           <Search className="w-4 h-4 shrink-0" />
           <span>Dish Search</span>
         </Link>
-        {mounted && user && (
+        {isClient && user && (
           <>
             <Link href="/trails" className="flex flex-col md:flex-row items-center gap-1.5 text-xs md:text-[0.95rem] font-medium text-text-secondary p-[0.35rem] md:px-3 md:py-2 rounded-sm transition-all duration-300 hover:text-text-primary hover:bg-bg-tertiary">
               <Compass className="w-4 h-4 shrink-0" />
@@ -94,7 +109,7 @@ export default function Navbar() {
 
         <div className="w-px h-5 bg-white/10 hidden md:block"></div>
 
-        {mounted && user ? (
+        {isClient && user ? (
           <div className="flex items-center gap-1.5">
             <Link
               href="/profile"

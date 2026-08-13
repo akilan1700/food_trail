@@ -47,7 +47,8 @@ userSchema.pre('save', function (next) {
   }
   try {
     const salt = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.pbkdf2Sync(this.mpin, salt, 1000, 64, 'sha512').toString('hex');
+    const mpinStr = String(this.mpin);
+    const hash = crypto.pbkdf2Sync(mpinStr, salt, 1000, 64, 'sha512').toString('hex');
     this.mpin = `${salt}:${hash}`;
     next();
   } catch (err) {
@@ -61,7 +62,8 @@ userSchema.methods.compareMpin = function (candidateMpin) {
     const parts = this.mpin.split(':');
     if (parts.length !== 2) return false;
     const [salt, originalHash] = parts;
-    const hash = crypto.pbkdf2Sync(candidateMpin, salt, 1000, 64, 'sha512').toString('hex');
+    const mpinStr = String(candidateMpin);
+    const hash = crypto.pbkdf2Sync(mpinStr, salt, 1000, 64, 'sha512').toString('hex');
     return hash === originalHash;
   } catch (err) {
     return false;

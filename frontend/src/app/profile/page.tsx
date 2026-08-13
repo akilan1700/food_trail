@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 // File: src/app/profile/page.tsx
 // Description: User profile page displaying authenticated session credentials, trip stats, and sign out controls.
 // Author: Akilan M
@@ -6,12 +5,12 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectCurrentUser, clearCredentials, selectDetectedCity } from '../services/authSlice';
 import { selectSavedRestIds } from '../services/tripSlice';
-import AuthForm from '../components/AuthForm';
 import LoadingScreen from '../components/LoadingScreen';
+import { useRouter } from 'next/navigation';
 import { LogOut, Calendar, Map, CheckCircle2, Award, Heart } from 'lucide-react';
 import Link from 'next/link';
 
@@ -20,32 +19,19 @@ export default function ProfilePage() {
   const savedRestIds = useAppSelector(selectSavedRestIds);
   const detectedCity = useAppSelector(selectDetectedCity);
   const dispatch = useAppDispatch();
-  const [mounted, setMounted] = useState(false);
-
+  const router = useRouter();
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (!user) {
+      router.push('/login');
+    }
+  }, [user, router]);
 
   const handleLogout = () => {
     dispatch(clearCredentials());
   };
 
-  if (!mounted) {
-    return <LoadingScreen />;
-  }
-
   if (!user) {
-    return (
-      <div className="min-h-[70vh] flex flex-col justify-center items-center py-10 animate-fade-in">
-        <div className="text-center mb-8 max-w-[400px]">
-          <h1 className="text-3xl font-extrabold text-text-primary mb-2">My Profile</h1>
-          <p className="text-text-secondary">
-            Sign in to view your walkable food trails, custom saved spots, and manage account preferences.
-          </p>
-        </div>
-        <AuthForm />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   // Create formatted registration date
@@ -112,7 +98,7 @@ export default function ProfilePage() {
       </div>
 
       {/* User Details Card */}
-      {user.profile && (user.profile.bio || user.profile.phoneNumber || user.profile.city || user.profile.favoriteCuisine || user.profile.dateOfBirth) && (
+      {user.profile && (user.profile.bio || user.profile.city || user.profile.favoriteCuisine || user.profile.dateOfBirth) && (
         <div className="glass-panel p-6 md:p-8 mb-8 text-left">
           <h2 className="text-lg font-bold mb-4 border-b border-white/5 pb-2">User Details</h2>
           
@@ -124,12 +110,6 @@ export default function ProfilePage() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {user.profile.phoneNumber && (
-              <div>
-                <span className="text-xs uppercase tracking-wider text-text-muted font-bold block">Phone Number</span>
-                <span className="text-sm text-text-primary mt-1 block">{user.profile.phoneNumber}</span>
-              </div>
-            )}
             
             {user.profile.dateOfBirth && (
               <div>

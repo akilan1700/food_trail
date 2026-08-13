@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element, react-hooks/set-state-in-effect */
+/* eslint-disable @next/next/no-img-element */
 // File: src/app/trip/page.tsx
 // Description: Saved trip (My Trip) page allowing users to view, manage, and share their walkable food trail route via WhatsApp.
 // Author: Akilan M
@@ -74,7 +74,9 @@ export default function MyTripPage() {
   };
 
   useEffect(() => {
-    loadSavedTripData();
+    Promise.resolve().then(() => {
+      loadSavedTripData();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedRestIds]);
 

@@ -87,7 +87,7 @@ router.post('/login', async (req, res, next) => {
       return res.status(400).json({ error: { message: 'A valid email address is required' } });
     }
 
-    if (!mpin) {
+    if (mpin === undefined || mpin === null || mpin === '') {
       return res.status(400).json({ error: { message: 'MPIN is required' } });
     }
 
@@ -214,6 +214,14 @@ router.post('/verify', async (req, res, next) => {
 
     // Generate JWT
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+
+    // Set secure HttpOnly cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (matching token expiry)
+    });
 
     const formattedUser = await formatUserResponse(user, userProfile);
     res.status(200).json({
@@ -372,5 +380,18 @@ async function formatUserResponse(user, userProfile) {
     },
   };
 }
+
+/**
+ * @route POST /api/auth/logout
+ * @desc Log out user by clearing the authentication cookie
+ */
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+  res.status(200).json({ message: 'Logged out successfully' });
+});
 
 module.exports = router;

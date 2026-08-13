@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element, react-hooks/set-state-in-effect */
+/* eslint-disable @next/next/no-img-element */
 // File: src/app/page.tsx
 // Description: Home search dashboard implementing the dish-first search engine, vibe filters, and live busy indicators.
 // Author: Akilan M
@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { Dish, getDishes, searchDishes, formatPhotoUrl } from './services/api';
 import { useAppDispatch, useAppSelector } from './services/hooks';
@@ -33,7 +33,11 @@ export default function HomePage() {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAddDishRest, setSelectedAddDishRest] = useState<{ id: string; name: string } | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const dispatch = useAppDispatch();
   const savedRestIds = useAppSelector(selectSavedRestIds);
@@ -74,15 +78,18 @@ export default function HomePage() {
 
   // Load featured dishes on mount
   useEffect(() => {
-    setMounted(true);
-    fetchFeaturedDishes();
+    Promise.resolve().then(() => {
+      fetchFeaturedDishes();
+    });
   }, []);
 
   // Trigger search when vibe pills change
   useEffect(() => {
     // Skip initial fetch on mount (handled by fetchFeaturedDishes)
     if (loading && dishes.length === 0) return;
-    handleSearch();
+    Promise.resolve().then(() => {
+      handleSearch();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedVibes]);
 
@@ -116,7 +123,7 @@ export default function HomePage() {
     <div className="animate-fade-in">
       <section className="text-center my-10 md:my-14 animate-fade-in">
         <h1 className="text-[2rem] md:text-[2.75rem] font-extrabold leading-tight mb-3 text-text-primary">
-          Find {mounted && currentCity ? `the Best Dishes in ${currentCity}` : "Your Area's Best Dishes"}
+          Find {isClient && currentCity ? `the Best Dishes in ${currentCity}` : "Your Area's Best Dishes"}
         </h1>
         <p className="text-lg text-text-secondary max-w-[600px] mx-auto">
           Search for exact dishes (like Almond Croissants) and filter by cafe vibes. Get top spots, live busy statuses, and coordinates.
@@ -267,7 +274,7 @@ export default function HomePage() {
               <Utensils className="w-12 h-12 text-text-muted mx-auto mb-4" />
               <h3 className="text-xl font-bold mb-2">No exact dishes found</h3>
               <p className="text-text-secondary text-sm max-w-[400px] mx-auto">
-                We couldn&apos;t find a matching dish {mounted && currentCity ? `in ${currentCity}` : 'in your area'} for that query. Try adjusting your search or filters.
+                We couldn&apos;t find a matching dish {isClient && currentCity ? `in ${currentCity}` : 'in your area'} for that query. Try adjusting your search or filters.
               </p>
             </div>
           ) : (

@@ -53,7 +53,7 @@ const getInitialState = (): AuthState => {
     };
   }
 
-  const token = localStorage.getItem('foodtrail_token');
+  const token = null;
   const userJson = localStorage.getItem('foodtrail_user');
   const detectedCity = localStorage.getItem('foodtrail_detected_city');
   const detectedLatitude = localStorage.getItem('foodtrail_detected_latitude') ? Number(localStorage.getItem('foodtrail_detected_latitude')) : null;
@@ -106,7 +106,6 @@ const authSlice = createSlice({
       state.error = null;
 
       if (typeof window !== 'undefined') {
-        localStorage.setItem('foodtrail_token', token);
         localStorage.setItem('foodtrail_user', JSON.stringify(user));
       }
     },
@@ -116,7 +115,6 @@ const authSlice = createSlice({
       state.error = null;
 
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('foodtrail_token');
         localStorage.removeItem('foodtrail_user');
       }
     },

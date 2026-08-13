@@ -2,11 +2,11 @@
 // Description: Main Express application configuration, middleware, and route mounting.
 // Author: Akilan M
 // Created: 2026-08-11T17:37:59+05:30
-
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
+const cookieParser = require('cookie-parser');
 
 // Route imports (to be created)
 const dishRoutes = require('./routes/dishRoutes');
@@ -19,8 +19,12 @@ const authRoutes = require('./routes/authRoutes');
 const app = express();
 
 // Standard middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+}));
 app.use(express.json());
+app.use(cookieParser());
 app.use(morgan('dev'));
 
 // Static serving for local photo uploads fallback

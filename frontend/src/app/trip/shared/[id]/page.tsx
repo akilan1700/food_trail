@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element, react-hooks/set-state-in-effect */
+/* eslint-disable @next/next/no-img-element */
 // File: src/app/trip/shared/[id]/page.tsx
 // Description: Shared trip view page allowing visitors to view and import a friend's curated Puducherry food trail route.
 // Author: Akilan M
@@ -38,7 +38,9 @@ export default function SharedTripViewPage() {
 
   useEffect(() => {
     if (id) {
-      fetchSharedTrip();
+      Promise.resolve().then(() => {
+        fetchSharedTrip();
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);

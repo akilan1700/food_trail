@@ -89,7 +89,7 @@ describe('Authentication API Integration Tests', () => {
   });
 
   describe('POST /api/auth/login', () => {
-    test('should authenticate login and return JWT after OTP verification', async () => {
+    test('should authenticate login and return JWT token and user profile directly with valid MPIN', async () => {
       const user = new User({ email: 'registered@example.com', name: 'Registered User', mpin: '112233' });
       await user.save();
 
@@ -98,20 +98,10 @@ describe('Authentication API Integration Tests', () => {
         .send({ email: 'registered@example.com', mpin: '112233' });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.status).toBe('otp_required');
-      expect(res.body.email).toBe('registered@example.com');
-
-      const otpRecord = await Otp.findOne({ email: 'registered@example.com', type: 'login' });
-      expect(otpRecord).toBeDefined();
-      expect(otpRecord.otp).toBeDefined();
-
-      const verifyRes = await request(app)
-        .post('/api/auth/verify')
-        .send({ email: 'registered@example.com', otp: otpRecord.otp, type: 'login' });
-
-      expect(verifyRes.statusCode).toBe(200);
-      expect(verifyRes.body.token).toBeDefined();
-      expect(verifyRes.body.user.name).toBe('Registered User');
+      expect(res.body.token).toBeDefined();
+      expect(res.body.user.name).toBe('Registered User');
+      expect(res.body.user.email).toBe('registered@example.com');
+      expect(res.headers['set-cookie']).toBeDefined();
     });
 
     test('should reject invalid mpin', async () => {
@@ -149,19 +139,12 @@ describe('Authentication API Integration Tests', () => {
       });
       await registeredUser.save();
 
-      // Sign in to trigger OTP
-      await request(app)
+      // Sign in directly with MPIN to get token
+      const loginRes = await request(app)
         .post('/api/auth/login')
         .send({ email: 'profile-owner@example.com', mpin: '112233' });
 
-      const otpRecord = await Otp.findOne({ email: 'profile-owner@example.com', type: 'login' });
-
-      // Verify OTP to get token
-      const verifyRes = await request(app)
-        .post('/api/auth/verify')
-        .send({ email: 'profile-owner@example.com', otp: otpRecord.otp, type: 'login' });
-
-      userToken = verifyRes.body.token;
+      userToken = loginRes.body.token;
     });
 
     test('should fetch currently logged in user profile', async () => {

@@ -77,7 +77,7 @@ router.post('/signup', async (req, res, next) => {
 
 /**
  * @route POST /api/auth/login
- * @desc Log in with email and mpin
+ * @desc Log in directly with email and mpin
  */
 router.post('/login', async (req, res, next) => {
   try {
@@ -105,26 +105,27 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ error: { message: 'Invalid email or MPIN' } });
     }
 
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
 
-    // Clean old OTP codes for this login
-    await Otp.deleteMany({ email: trimmedEmail, type: 'login' });
-
-    const otpRecord = new Otp({
-      email: trimmedEmail,
-      otp: otpCode,
-      type: 'login',
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    // Set secure HttpOnly cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (matching token expiry)
     });
-    await otpRecord.save();
 
-    // Send transaction email via Brevo
-    await sendOtpEmail(trimmedEmail, otpCode, 'login');
+    let userProfile = await UserProfile.findOne({ userId: user._id });
+    if (!userProfile) {
+      userProfile = new UserProfile({ userId: user._id });
+      await userProfile.save();
+    }
 
+    const formattedUser = await formatUserResponse(user, userProfile);
     res.status(200).json({
-      status: 'otp_required',
-      email: trimmedEmail,
-      type: 'login',
+      token,
+      user: formattedUser,
     });
   } catch (error) {
     next(error);

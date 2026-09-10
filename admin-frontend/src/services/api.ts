@@ -101,7 +101,7 @@ async function adminFetch<T>(endpoint: string, options?: RequestInit): Promise<T
     headers,
   });
 
-  if (response.status === 401 && typeof window !== 'undefined') {
+  if ((response.status === 401 || response.status === 403) && typeof window !== 'undefined') {
     localStorage.removeItem('foodtrail_admin_jwt');
     localStorage.removeItem('foodtrail_admin_user');
     localStorage.removeItem('foodtrail_admin_expires_at');

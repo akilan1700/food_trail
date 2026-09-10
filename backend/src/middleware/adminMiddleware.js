@@ -17,20 +17,14 @@ async function adminMiddleware(req, res, next) {
   try {
     let token = null;
 
-    // 1. Try to read from admin cookie first
-    if (req.cookies && req.cookies.admin_token) {
-      token = req.cookies.admin_token;
-    } 
-    // 2. Fall back to general cookie if set
-    else if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
+    // 1. Try to read from Authorization Header first
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
     }
-    // 3. Fall back to Authorization Header
-    else {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.split(' ')[1];
-      }
+    // 2. Fall back to admin_token cookie
+    else if (req.cookies && req.cookies.admin_token) {
+      token = req.cookies.admin_token;
     }
 
     if (!token) {

@@ -45,13 +45,15 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, [purgeAdminSession]);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function initAuth() {
       const expiryStr = localStorage.getItem('foodtrail_admin_expires_at');
       const isExpired = expiryStr ? Date.now() >= Number(expiryStr) : false;
 
       if (isExpired) {
         purgeAdminSession();
-        setLoading(false);
+        if (isMounted) setLoading(false);
         return;
       }
 
@@ -59,37 +61,40 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       const storedAdmin = localStorage.getItem('foodtrail_admin_user');
 
       if (storedToken) {
-        setToken(storedToken);
+        if (isMounted) setToken(storedToken);
         if (storedAdmin) {
           try {
-            setAdmin(JSON.parse(storedAdmin));
+            if (isMounted) setAdmin(JSON.parse(storedAdmin));
           } catch {}
         }
         // Verify with backend
         try {
           const profileRes = await getAdminProfile();
-          setAdmin(profileRes.admin);
-          localStorage.setItem('foodtrail_admin_user', JSON.stringify(profileRes.admin));
+          if (isMounted) {
+            setAdmin(profileRes.admin);
+            localStorage.setItem('foodtrail_admin_user', JSON.stringify(profileRes.admin));
+          }
         } catch {
           console.warn('Session expired or invalid token');
-          purgeAdminSession();
+          if (isMounted) {
+            purgeAdminSession();
+          }
         }
       }
-      setLoading(false);
+      if (isMounted) setLoading(false);
     }
 
     initAuth();
 
-    // Heartbeat & focus/visibility listeners for 1 hour session auto-destruction
+    // Heartbeat & focus/visibility listeners for session auto-destruction
     const handleFocus = () => checkAdminExpiry();
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleFocus);
-    const interval = setInterval(checkAdminExpiry, 10000);
 
     return () => {
+      isMounted = false;
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleFocus);
-      clearInterval(interval);
     };
   }, [checkAdminExpiry, purgeAdminSession]);
 
@@ -97,9 +102,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!loading) {
       if (!admin && pathname !== '/login') {
-        router.push('/login');
+        router.replace('/login');
       } else if (admin && pathname === '/login') {
-        router.push('/');
+        router.replace('/');
       }
     }
   }, [admin, loading, pathname, router]);
@@ -112,7 +117,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('foodtrail_admin_jwt', res.token);
     localStorage.setItem('foodtrail_admin_user', JSON.stringify(res.admin));
     localStorage.setItem('foodtrail_admin_expires_at', String(expiresAt));
-    router.push('/');
+    router.replace('/');
   };
 
   const logout = async () => {
@@ -120,7 +125,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       await adminLogout();
     } catch {}
     purgeAdminSession();
-    router.push('/login');
+    router.replace('/login');
   };
 
   return (

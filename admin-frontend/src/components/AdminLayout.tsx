@@ -19,7 +19,6 @@ import {
   ExternalLink,
   Menu,
   X,
-  Sparkles,
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -95,23 +94,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             );
           })}
         </nav>
-
-        {/* Public App Shortcut */}
-        <div className="p-4 mx-3 mb-4 rounded-lg bg-white/3 border border-white/5 flex flex-col gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-text-muted">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Public User Application</span>
-          </div>
-          <a
-            href="http://localhost:3000"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between text-xs font-semibold text-accent hover:text-accent-hover transition-colors"
-          >
-            <span>Open User App</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        </div>
 
         {/* Admin User Profile & Logout */}
         <div className="p-4 border-t border-white/8 bg-black/20 flex items-center justify-between">

@@ -1,25 +1,104 @@
 {
-  "comment": "File: public/manifest.json, Description: PWA Web App Manifest for FoodTrail, Author: Akilan M, Created: 2026-08-11T17:40:28+05:30",
-  "name": "FoodTrail",
+  "id": "/",
+  "name": "FoodTrail - Walking Food Trails & Dish Search",
   "short_name": "FoodTrail",
   "description": "Walkable Food Trails and Dish-First search in your area.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "window-controls-overlay"
+  ],
+  "orientation": "portrait-primary",
   "background_color": "#0b0f19",
   "theme_color": "#f18024",
+  "categories": [
+    "food",
+    "travel",
+    "navigation",
+    "lifestyle"
+  ],
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Dish Search",
+      "short_name": "Search",
+      "description": "Search dishes and dining spots nearby",
+      "url": "/?source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Walking Trails",
+      "short_name": "Trails",
+      "description": "Discover curated walking food routes",
+      "url": "/trails?source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "My Trip",
+      "short_name": "My Trip",
+      "description": "View and manage your saved food trail",
+      "url": "/trip?source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Add Spot",
+      "short_name": "Add Spot",
+      "description": "Pin and add a new food spot",
+      "url": "/add-spot?source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
   "icons": [
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

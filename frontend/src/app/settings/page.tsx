@@ -8,10 +8,12 @@
 import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectCurrentUser, updateUserSettings } from '../services/authSlice';
-import { updateProfile } from '../services/api';
+import { updateProfile, executeQueuedMutation } from '../services/api';
+import { usePwaInstall, useNetworkStatus, triggerHaptic } from '../services/usePwa';
+import { clearOfflineQueue } from '../services/offlineSync';
 import LoadingScreen from '../components/LoadingScreen';
 import { useRouter } from 'next/navigation';
-import { Settings, Bell, User, Check, X, ShieldAlert, Pencil, Sparkles } from 'lucide-react';
+import { Settings, Bell, User, Check, X, ShieldAlert, Pencil, Sparkles, Smartphone, Download, Database, RefreshCw, Trash2, Wifi } from 'lucide-react';
 
 /**
  * SettingsPage component allowing users to view and update their profile details,
@@ -42,10 +44,13 @@ export default function SettingsPage() {
   const [city, setCity] = useState(user?.profile?.city || '');
   const [favoriteCuisine, setFavoriteCuisine] = useState(user?.profile?.favoriteCuisine || '');
 
-  // Request statuses
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cacheCleared, setCacheCleared] = useState(false);
+
+  const { isInstallable, isStandalone, triggerInstall } = usePwaInstall();
+  const { isOnline, pendingCount, syncing, syncNow } = useNetworkStatus(executeQueuedMutation);
 
   // Sync state if user loads or updates after mount
   useEffect(() => {
@@ -335,6 +340,91 @@ export default function SettingsPage() {
                   <option value="Dark">Dark Mode</option>
                   <option value="Light">Light Mode</option>
                 </select>
+              </div>
+
+              {/* Progressive Web App (PWA) & Offline Status */}
+              <div className="flex flex-col gap-3 pt-3 border-t border-white/5">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-accent" />
+                  <span className="text-xs uppercase tracking-wider text-text-secondary font-bold">PWA &amp; Offline Storage</span>
+                </div>
+
+                <div className="p-3.5 bg-bg-tertiary/30 rounded-sm border border-white/5 flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <div className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-status-green animate-pulse' : 'bg-status-red'}`}></span>
+                      <span>{isOnline ? 'Connected to Network' : 'Working Offline'}</span>
+                    </div>
+                    <p className="text-[0.7rem] text-text-secondary mt-0.5">
+                      {pendingCount > 0
+                        ? `${pendingCount} action(s) waiting in offline queue`
+                        : 'All data synchronized with cloud database'}
+                    </p>
+                  </div>
+
+                  {pendingCount > 0 && isOnline && (
+                    <button
+                      type="button"
+                      disabled={syncing}
+                      onClick={() => {
+                        triggerHaptic(15);
+                        syncNow();
+                      }}
+                      className="bg-accent/15 border border-accent/30 text-accent hover:bg-accent/25 px-3 py-1.5 rounded-sm text-xs font-bold cursor-pointer transition-all flex items-center gap-1.5"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                      <span>{syncing ? 'Syncing...' : 'Sync Now'}</span>
+                    </button>
+                  )}
+                </div>
+
+                {isInstallable && !isStandalone && (
+                  <div className="p-3.5 bg-accent/10 border border-accent/20 rounded-sm flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-accent">Install FoodTrail App</div>
+                      <p className="text-[0.7rem] text-text-secondary">
+                        Install as native standalone app on your home screen.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(20);
+                        triggerInstall();
+                      }}
+                      className="bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3.5 py-1.5 rounded-sm flex items-center gap-1.5 cursor-pointer shadow-md shadow-accent/20"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Install App</span>
+                    </button>
+                  </div>
+                )}
+
+                {isStandalone && (
+                  <div className="p-3 bg-status-green/10 border border-status-green/20 rounded-sm text-xs text-status-green flex items-center gap-2">
+                    <Check className="w-4 h-4 shrink-0" />
+                    <span>Running in PWA Standalone App Mode</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[0.7rem] text-text-muted flex items-center gap-1">
+                    <Database className="w-3 h-3" />
+                    <span>Offline Cache Storage</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(15);
+                      clearOfflineQueue();
+                      setCacheCleared(true);
+                    }}
+                    className="text-[0.7rem] text-text-muted hover:text-red-400 bg-transparent border-none cursor-pointer flex items-center gap-1 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>{cacheCleared ? 'Cache Cleared!' : 'Clear Cache & Queue'}</span>
+                  </button>
+                </div>
               </div>
             </div>
 

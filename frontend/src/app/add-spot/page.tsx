@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { createRestaurant } from '../services/api';
 import { useAppSelector } from '../services/hooks';
 import { selectDetectedCity, selectDetectedLatitude, selectDetectedLongitude } from '../services/authSlice';
+import { triggerHaptic } from '../services/usePwa';
 import PhotoUpload from '../components/PhotoUpload';
 import AddDishModal from '../components/AddDishModal';
 
@@ -67,6 +68,7 @@ export default function AddSpotPage() {
    * Optimized for PWA standalone execution and mobile browsers.
    */
   const handleGetCurrentLocation = (): void => {
+    triggerHaptic(15);
     if (typeof window === 'undefined' || !navigator.geolocation) {
       setErrorMsg('Geolocation is not supported by your browser.');
       return;
@@ -76,8 +78,15 @@ export default function AddSpotPage() {
     setErrorMsg('');
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLatitude(position.coords.latitude.toFixed(6));
-        setLongitude(position.coords.longitude.toFixed(6));
+        triggerHaptic(20);
+        const lat = position.coords.latitude.toFixed(6);
+        const lng = position.coords.longitude.toFixed(6);
+        setLatitude(lat);
+        setLongitude(lng);
+        try {
+          localStorage.setItem('foodtrail_detected_latitude', lat);
+          localStorage.setItem('foodtrail_detected_longitude', lng);
+        } catch {}
         setLocationLoading(false);
       },
       (error) => {

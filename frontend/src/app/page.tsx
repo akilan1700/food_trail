@@ -20,6 +20,7 @@ import {
 import { useAppDispatch, useAppSelector } from './services/hooks';
 import { selectSavedRestIds, addRestaurant, removeRestaurant } from './services/tripSlice';
 import { selectCurrentUser, selectDetectedCity } from './services/authSlice';
+import { triggerHaptic } from './services/usePwa';
 import { Search, Star, MapPin, Bookmark, Utensils, Plus, Store, ExternalLink, MessageSquare } from 'lucide-react';
 import AddDishModal from './components/AddDishModal';
 import ReviewModal from './components/ReviewModal';
@@ -138,6 +139,7 @@ export default function HomePage() {
 
   // Toggle vibe filter pill
   const toggleVibe = (vibe: string) => {
+    triggerHaptic(10);
     setSelectedVibes((prev) =>
       prev.includes(vibe) ? prev.filter((v) => v !== vibe) : [...prev, vibe]
     );
@@ -145,6 +147,7 @@ export default function HomePage() {
 
   // Toggle restaurant in saved "My Trip" list
   const toggleSaveRestaurant = (restaurantId: string) => {
+    triggerHaptic(15);
     if (savedRestIds.includes(restaurantId)) {
       dispatch(removeRestaurant(restaurantId));
     } else {

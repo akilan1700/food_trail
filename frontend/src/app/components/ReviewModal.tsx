@@ -7,10 +7,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Star, X, MessageSquare, Trash2, Send, Loader2, LogIn, AlertCircle } from 'lucide-react';
+import { Star, X, MessageSquare, Trash2, Send, Loader2, LogIn, AlertCircle, WifiOff } from 'lucide-react';
 import { Review, getReviews, createReview, deleteReview } from '../services/api';
 import { useAppSelector } from '../services/hooks';
 import { selectCurrentUser } from '../services/authSlice';
+import { triggerHaptic } from '../services/usePwa';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -243,7 +244,10 @@ export default function ReviewModal({
                         key={star}
                         type="button"
                         className="p-1 cursor-pointer transition-transform hover:scale-125 focus:outline-none"
-                        onClick={() => setSelectedRating(star)}
+                        onClick={() => {
+                          triggerHaptic(15);
+                          setSelectedRating(star);
+                        }}
                         onMouseEnter={() => setHoverRating(star)}
                         onMouseLeave={() => setHoverRating(null)}
                         title={`Rate ${star} star${star > 1 ? 's' : ''}`}
@@ -354,7 +358,13 @@ export default function ReviewModal({
                               {rev.user?.name || 'Anonymous Foodie'}
                               {isOwner && (
                                 <span className="ml-1.5 text-[0.65rem] px-1.5 py-0.5 rounded bg-accent/15 text-accent font-semibold">
-                                  You
+                                 You
+                                </span>
+                              )}
+                              {rev.isOfflinePending && (
+                                <span className="ml-1.5 text-[0.65rem] px-1.5 py-0.5 rounded bg-status-orange/15 text-status-orange font-semibold inline-flex items-center gap-1">
+                                  <WifiOff className="w-2.5 h-2.5" />
+                                  Queued for sync
                                 </span>
                               )}
                             </div>

@@ -9,11 +9,12 @@
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 
-import { Trail, getTrails, getTrailDetails, formatPhotoUrl, getGoogleMapsUrl } from '../services/api';
-import { Footprints, Route, Compass, Bookmark, MapPin } from 'lucide-react';
+import { Trail, getTrails, getTrailDetails, formatPhotoUrl, getGoogleMapsUrl, shareFoodTrail } from '../services/api';
+import { Footprints, Route, Compass, Bookmark, MapPin, Sun, SunMedium, Share2 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { addRestaurants, setSavedTrailId } from '../services/tripSlice';
 import { selectCurrentUser, selectDetectedCity } from '../services/authSlice';
+import { useWakeLock, triggerHaptic } from '../services/usePwa';
 
 export default function TrailsPage() {
   const dispatch = useAppDispatch();
@@ -28,6 +29,8 @@ export default function TrailsPage() {
     () => true,
     () => false
   );
+
+  const { isSupported: isWakeLockSupported, isLocked: isWakeLocked, toggleWakeLock } = useWakeLock();
 
   const fetchTrails = async () => {
     setLoading(true);
@@ -68,11 +71,22 @@ export default function TrailsPage() {
   // Save all stops/restaurants of this trail to My Trip saved list
   const handleSaveTrailRestaurants = () => {
     if (!selectedTrail) return;
-    
+    triggerHaptic(20);
     const restIdsToSave = selectedTrail.stops.map(stop => stop.restaurantId._id);
     dispatch(addRestaurants(restIdsToSave));
     dispatch(setSavedTrailId(selectedTrail._id));
     alert(`Added all ${selectedTrail.stops.length} places from "${selectedTrail.name}" to your Trip list!`);
+  };
+
+  // Share trail
+  const handleShareTrail = async (trail: Trail) => {
+    triggerHaptic(15);
+    const url = typeof window !== 'undefined' ? `${window.location.origin}/trails` : '';
+    await shareFoodTrail({
+      title: trail.name,
+      text: `Walk this food trail: ${trail.name} (${(trail.distance / 1000).toFixed(1)} km, ${trail.estimatedDuration} mins)!`,
+      url,
+    });
   };
 
   return (
@@ -152,14 +166,42 @@ export default function TrailsPage() {
                       <h2 className="text-[1.75rem] font-extrabold mb-2">{selectedTrail.name}</h2>
                       <p className="text-text-secondary text-[0.95rem] leading-relaxed max-w-[600px]">{selectedTrail.description}</p>
                     </div>
-                    <button
-                      type="button"
-                      className="bg-accent text-white border-none rounded-sm px-5 py-3 font-semibold cursor-pointer transition-all duration-300 flex items-center gap-2 shrink-0 hover:bg-accent-hover"
-                      onClick={handleSaveTrailRestaurants}
-                    >
-                      <Bookmark className="w-4 h-4 fill-white shrink-0" />
-                      <span>Save Route Stops</span>
-                    </button>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      {isWakeLockSupported && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic(15);
+                            toggleWakeLock();
+                          }}
+                          className={`border rounded-sm px-3.5 py-2.5 text-xs font-semibold cursor-pointer transition-all duration-300 flex items-center gap-1.5 ${
+                            isWakeLocked
+                              ? 'bg-accent/20 border-accent text-accent shadow-[0_0_10px_rgba(241,128,36,0.3)]'
+                              : 'bg-bg-tertiary/40 border-white/10 text-text-secondary hover:text-text-primary hover:border-white/20'
+                          }`}
+                          title="Keep screen awake while following this walking trail"
+                        >
+                          {isWakeLocked ? <Sun className="w-3.5 h-3.5 text-accent animate-pulse" /> : <SunMedium className="w-3.5 h-3.5" />}
+                          <span>{isWakeLocked ? 'Screen On' : 'Screen Awake'}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="bg-bg-tertiary text-text-primary border border-white/10 rounded-sm px-3.5 py-2.5 text-xs font-semibold cursor-pointer transition-all duration-300 hover:bg-white/10 flex items-center gap-1.5"
+                        onClick={() => handleShareTrail(selectedTrail)}
+                      >
+                        <Share2 className="w-3.5 h-3.5 text-accent" />
+                        <span>Share</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="bg-accent text-white border-none rounded-sm px-4 py-2.5 text-xs font-bold cursor-pointer transition-all duration-300 flex items-center gap-1.5 shrink-0 hover:bg-accent-hover shadow-md shadow-accent/20"
+                        onClick={handleSaveTrailRestaurants}
+                      >
+                        <Bookmark className="w-3.5 h-3.5 fill-white shrink-0" />
+                        <span>Save Route Stops</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-8">

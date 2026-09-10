@@ -1,9 +1,10 @@
 // File: src/app/services/api.ts
-// Description: Unified API service module containing typed fetch operations and shared typescript models.
+// Description: Unified API service module containing typed fetch operations, offline caching, and PWA synchronization handlers.
 // Author: Akilan M
 // Created: 2026-08-12T14:21:00+05:30
 
 import { User, UserSettings, UserProfileDetails } from './authSlice';
+import { enqueueOfflineMutation, OfflineMutationItem } from './offlineSync';
 
 export interface Restaurant {
   _id: string;
@@ -20,6 +21,7 @@ export interface Restaurant {
   rating: number;
   reviewCount?: number;
   photoUrl?: string;
+  isOfflinePending?: boolean;
 }
 
 /**
@@ -53,6 +55,7 @@ export interface Dish {
   rating: number;
   reviewCount?: number;
   isSignature?: boolean;
+  isOfflinePending?: boolean;
 }
 
 export interface Review {
@@ -68,6 +71,7 @@ export interface Review {
   comment: string;
   createdAt: string;
   updatedAt: string;
+  isOfflinePending?: boolean;
 }
 
 export interface Stop {
@@ -86,6 +90,7 @@ export interface Trail {
   area: string;
   photoUrl?: string;
   stops: Stop[];
+  isOfflinePending?: boolean;
 }
 
 export interface SavedTrip {
@@ -98,13 +103,39 @@ export interface SavedTrip {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 /**
- * Generic API request wrapper.
+ * Saves a successful API GET response payload to local storage for offline use.
+ */
+function setCacheItem<T>(key: string, data: T): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(`ft_cache_${key}`, JSON.stringify(data));
+  } catch (e) {
+    console.warn('[Cache] Storage quota exceeded or unavailable:', e);
+  }
+}
+
+/**
+ * Retrieves a cached GET response payload from local storage.
+ */
+function getCacheItem<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const item = localStorage.getItem(`ft_cache_${key}`);
+    return item ? (JSON.parse(item) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Generic API request wrapper with offline caching and session handling.
  * @param endpoint - The API endpoint path.
  * @param options - Request options (headers, method, body, etc.).
  */
 async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-  
+  const isGet = !options?.method || options.method === 'GET';
+
   // Auto-destroy local session if past 1 hour expiry
   if (typeof window !== 'undefined') {
     const expiryStr = localStorage.getItem('foodtrail_session_expires_at');
@@ -124,31 +155,49 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
     }
   }
 
-  const response = await fetch(url, {
-    ...options,
-    credentials: options?.credentials || 'include',
-    headers,
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      credentials: options?.credentials || 'include',
+      headers,
+    });
 
-  // Automatically destroy local session if server returns 401 Unauthorized
-  if (response.status === 401 && typeof window !== 'undefined') {
-    localStorage.removeItem('foodtrail_user');
-    localStorage.removeItem('foodtrail_token');
-    localStorage.removeItem('foodtrail_session_expires_at');
-    window.dispatchEvent(new CustomEvent('foodtrail_session_expired'));
-  }
+    // Automatically destroy local session if server returns 401 Unauthorized
+    if (response.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('foodtrail_user');
+      localStorage.removeItem('foodtrail_token');
+      localStorage.removeItem('foodtrail_session_expires_at');
+      window.dispatchEvent(new CustomEvent('foodtrail_session_expired'));
+    }
 
-  if (!response.ok) {
-    let errorMessage = `API error: ${response.status} ${response.statusText}`;
-    try {
-      const errRes = await response.clone().json();
-      if (errRes?.error?.message) {
-        errorMessage = errRes.error.message;
+    if (!response.ok) {
+      let errorMessage = `API error: ${response.status} ${response.statusText}`;
+      try {
+        const errRes = await response.clone().json();
+        if (errRes?.error?.message) {
+          errorMessage = errRes.error.message;
+        }
+      } catch {}
+      throw new Error(errorMessage);
+    }
+
+    const data = (await response.json()) as T;
+    // Cache successful GET responses
+    if (isGet) {
+      setCacheItem(endpoint, data);
+    }
+    return data;
+  } catch (error) {
+    // If GET request fails and user is offline or fetch threw network error, check cache
+    if (isGet) {
+      const cached = getCacheItem<T>(endpoint);
+      if (cached) {
+        console.info(`[PWA Offline] Serving cached data for endpoint: ${endpoint}`);
+        return cached;
       }
-    } catch {}
-    throw new Error(errorMessage);
+    }
+    throw error;
   }
-  return response.json() as Promise<T>;
 }
 
 /**
@@ -190,6 +239,19 @@ export async function getTrailDetails(id: string): Promise<Trail> {
  * Update the simulated busy status of a restaurant.
  */
 export async function updateBusyStatus(restaurantId: string, newStatus: string): Promise<Restaurant> {
+  if (typeof window !== 'undefined' && !navigator.onLine) {
+    enqueueOfflineMutation('UPDATE_BUSY_STATUS', { restaurantId, busyStatus: newStatus });
+    return {
+      _id: restaurantId,
+      name: 'Dining Spot',
+      area: '',
+      vibeTags: [],
+      busyStatus: newStatus as Restaurant['busyStatus'],
+      rating: 4.5,
+      isOfflinePending: true,
+    };
+  }
+
   return apiRequest<Restaurant>(`/restaurants/${restaurantId}/busy-status`, {
     method: 'PATCH',
     headers: {
@@ -237,7 +299,7 @@ export async function getSharedTrip(id: string): Promise<SavedTrip> {
  * Formats a given photo URL or path into a fully qualified image URL.
  */
 export function formatPhotoUrl(url: string | undefined): string {
-  if (!url) return 'https://images.unsplash.com/photo-1498804103079-a6351b050096?w=600'; // Default fallback
+  if (!url) return 'https://images.unsplash.com/photo-1498804103079-a6351b050096?w=600';
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
@@ -249,9 +311,9 @@ export function formatPhotoUrl(url: string | undefined): string {
 }
 
 /**
- * Uploads an image file to the Express backend (organized in a user-specific folder structure).
+ * Uploads an image file to the Express backend.
  * @param file - Image file to upload.
- * @param folder - Optional subfolder category (e.g. 'spots', 'dishes', 'trails').
+ * @param folder - Optional subfolder category.
  */
 export async function uploadImage(file: File, folder?: string): Promise<{ success: boolean; fileId: string; folder?: string }> {
   const formData = new FormData();
@@ -327,9 +389,25 @@ export async function updateRestaurantPhoto(id: string, photoUrl: string): Promi
 }
 
 /**
- * Create a new walking food trail.
+ * Create a new walking food trail (with offline queue fallback).
  */
 export async function createTrail(trailData: Partial<Trail>): Promise<Trail> {
+  if (typeof window !== 'undefined' && !navigator.onLine) {
+    enqueueOfflineMutation('CREATE_TRAIL', trailData);
+    const mockTrail: Trail = {
+      _id: `offline_trail_${Date.now()}`,
+      name: trailData.name || 'Offline Walking Trail',
+      description: trailData.description || '',
+      estimatedDuration: trailData.estimatedDuration || 30,
+      distance: trailData.distance || 1500,
+      area: trailData.area || 'Nearby',
+      photoUrl: trailData.photoUrl,
+      stops: trailData.stops || [],
+      isOfflinePending: true,
+    };
+    return mockTrail;
+  }
+
   return apiRequest<Trail>('/trails', {
     method: 'POST',
     headers: {
@@ -340,7 +418,7 @@ export async function createTrail(trailData: Partial<Trail>): Promise<Trail> {
 }
 
 /**
- * Create a new restaurant.
+ * Create a new restaurant (with offline queue fallback).
  */
 export async function createRestaurant(restaurantData: {
   name: string;
@@ -351,6 +429,33 @@ export async function createRestaurant(restaurantData: {
   vibeTags?: string[];
   photoUrl?: string;
 }): Promise<Restaurant> {
+  if (typeof window !== 'undefined' && !navigator.onLine) {
+    enqueueOfflineMutation('CREATE_RESTAURANT', restaurantData);
+    const mockRestaurant: Restaurant = {
+      _id: `offline_spot_${Date.now()}`,
+      name: restaurantData.name,
+      description: restaurantData.description,
+      address: restaurantData.address,
+      area: restaurantData.area,
+      location: {
+        type: 'Point',
+        coordinates: restaurantData.coordinates,
+      },
+      vibeTags: restaurantData.vibeTags || [],
+      busyStatus: 'Plenty of Tables',
+      rating: 5.0,
+      reviewCount: 0,
+      photoUrl: restaurantData.photoUrl,
+      isOfflinePending: true,
+    };
+
+    // Update local cache
+    const existing = getCacheItem<Restaurant[]>('/restaurants') || [];
+    setCacheItem('/restaurants', [mockRestaurant, ...existing]);
+
+    return mockRestaurant;
+  }
+
   return apiRequest<Restaurant>('/restaurants', {
     method: 'POST',
     headers: {
@@ -361,7 +466,7 @@ export async function createRestaurant(restaurantData: {
 }
 
 /**
- * Create a new dish.
+ * Create a new dish (with offline queue fallback).
  */
 export async function createDish(dishData: {
   name: string;
@@ -371,6 +476,30 @@ export async function createDish(dishData: {
   restaurantId: string;
   isSignature?: boolean;
 }): Promise<Dish> {
+  if (typeof window !== 'undefined' && !navigator.onLine) {
+    enqueueOfflineMutation('CREATE_DISH', dishData);
+    const mockDish: Dish = {
+      _id: `offline_dish_${Date.now()}`,
+      name: dishData.name,
+      description: dishData.description || '',
+      price: dishData.price,
+      photoUrl: dishData.photoUrl,
+      restaurantId: {
+        _id: dishData.restaurantId,
+        name: 'Spot',
+        area: 'Nearby',
+        vibeTags: [],
+        busyStatus: 'Plenty of Tables',
+        rating: 5,
+      },
+      rating: 5,
+      reviewCount: 0,
+      isSignature: dishData.isSignature,
+      isOfflinePending: true,
+    };
+    return mockDish;
+  }
+
   return apiRequest<Dish>('/dishes', {
     method: 'POST',
     headers: {
@@ -444,9 +573,33 @@ export async function updateProfile(
 }
 
 /**
- * Mark a walking food trail as completed in the database.
+ * Mark a walking food trail as completed (with offline queue fallback).
  */
 export async function completeWalk(trailId?: string): Promise<{ user: User }> {
+  if (typeof window !== 'undefined' && !navigator.onLine) {
+    enqueueOfflineMutation('COMPLETE_WALK', { trailId });
+    const cachedUserJson = localStorage.getItem('foodtrail_user');
+    let user: User;
+    if (cachedUserJson) {
+      user = JSON.parse(cachedUserJson);
+      if (!user.profile) {
+        user.profile = {};
+      }
+      user.profile.walksCompleted = (user.profile.walksCompleted || 0) + 1;
+      localStorage.setItem('foodtrail_user', JSON.stringify(user));
+    } else {
+      user = {
+        id: 'offline_user',
+        email: 'user@foodtrail.local',
+        name: 'Foodie',
+        settings: { notificationsEnabled: true, preferredTheme: 'Dark' },
+        profile: { walksCompleted: 1 },
+        createdAt: new Date().toISOString(),
+      };
+    }
+    return { user };
+  }
+
   return apiRequest<{ user: User }>('/auth/profile/complete-walk', {
     method: 'POST',
     headers: {
@@ -479,7 +632,7 @@ export async function getReviews(params: { restaurantId?: string; dishId?: strin
 }
 
 /**
- * Submit a user rating and review comment for a dining spot or dish.
+ * Submit a user rating and review comment (with offline queue fallback).
  * @param data - Review payload containing target, rating, and comment.
  */
 export async function createReview(data: {
@@ -488,6 +641,40 @@ export async function createReview(data: {
   rating: number;
   comment: string;
 }): Promise<Review> {
+  if (typeof window !== 'undefined' && !navigator.onLine) {
+    enqueueOfflineMutation('CREATE_REVIEW', data);
+    const cachedUserJson = localStorage.getItem('foodtrail_user');
+    let userName = 'You (Offline)';
+    let userEmail = 'user@offline.local';
+    let userId = 'offline_user';
+    if (cachedUserJson) {
+      try {
+        const u = JSON.parse(cachedUserJson);
+        userName = u.name || userName;
+        userEmail = u.email || userEmail;
+        userId = u.id || u._id || userId;
+      } catch {}
+    }
+
+    const mockReview: Review = {
+      _id: `offline_rev_${Date.now()}`,
+      user: {
+        _id: userId,
+        name: userName,
+        email: userEmail,
+      },
+      restaurantId: data.restaurantId,
+      dishId: data.dishId,
+      rating: data.rating,
+      comment: data.comment,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isOfflinePending: true,
+    };
+
+    return mockReview;
+  }
+
   return apiRequest<Review>('/reviews', {
     method: 'POST',
     headers: {
@@ -507,3 +694,59 @@ export async function deleteReview(reviewId: string): Promise<{ success: boolean
   });
 }
 
+/**
+ * Processes an individual queued offline mutation against the live API.
+ * @param item - The offline mutation item.
+ */
+export async function executeQueuedMutation(item: OfflineMutationItem): Promise<unknown> {
+  switch (item.type) {
+    case 'CREATE_REVIEW':
+      return createReview(item.payload as { restaurantId?: string; dishId?: string; rating: number; comment: string });
+    case 'CREATE_RESTAURANT':
+      return createRestaurant(item.payload as { name: string; description?: string; address?: string; area: string; coordinates: number[]; vibeTags?: string[]; photoUrl?: string });
+    case 'CREATE_DISH':
+      return createDish(item.payload as { name: string; description?: string; price: number; photoUrl?: string; restaurantId: string; isSignature?: boolean });
+    case 'COMPLETE_WALK':
+      return completeWalk((item.payload as { trailId?: string })?.trailId);
+    case 'CREATE_TRAIL':
+      return createTrail(item.payload as Partial<Trail>);
+    case 'UPDATE_BUSY_STATUS': {
+      const p = item.payload as { restaurantId: string; busyStatus: string };
+      return updateBusyStatus(p.restaurantId, p.busyStatus);
+    }
+    default:
+      throw new Error(`Unknown mutation type: ${item.type}`);
+  }
+}
+
+/**
+ * Native PWA Web Share API helper with automatic fallback to clipboard copy.
+ * @param data - Share payload containing title, text, and url.
+ * @returns Boolean indicating whether share or copy succeeded.
+ */
+export async function shareFoodTrail(data: { title: string; text: string; url: string }): Promise<boolean> {
+  if (typeof window !== 'undefined' && navigator.share) {
+    try {
+      await navigator.share(data);
+      return true;
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        console.warn('[shareFoodTrail] Web Share error, falling back to clipboard:', err);
+      } else {
+        return false;
+      }
+    }
+  }
+
+  // Fallback to clipboard
+  if (typeof window !== 'undefined' && navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(`${data.title}\n${data.text}\n${data.url}`);
+      return true;
+    } catch (err) {
+      console.error('[shareFoodTrail] Clipboard write failed:', err);
+    }
+  }
+
+  return false;
+}

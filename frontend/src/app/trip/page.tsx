@@ -12,8 +12,9 @@ import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectSavedRestIds, selectSavedTrailId, setSavedTrailId, removeRestaurant, clearTrip } from '../services/tripSlice';
 import { selectCurrentUser, setCredentials, selectDetectedCity } from '../services/authSlice';
-import { Restaurant, Trail, getRestaurants, getTrailDetails, createSharedTrip, formatPhotoUrl, updateRestaurantPhoto, completeWalk, getGoogleMapsUrl } from '../services/api';
-import { Trash2, MessageCircle, MapPin, Star, Bookmark, Camera, PlusCircle, CheckCircle2 } from 'lucide-react';
+import { Restaurant, Trail, getRestaurants, getTrailDetails, createSharedTrip, formatPhotoUrl, updateRestaurantPhoto, completeWalk, getGoogleMapsUrl, shareFoodTrail } from '../services/api';
+import { useWakeLock, triggerHaptic } from '../services/usePwa';
+import { Trash2, MessageCircle, MapPin, Star, Bookmark, Camera, PlusCircle, CheckCircle2, Sun, SunMedium, Share2 } from 'lucide-react';
 import PhotoUpload from '../components/PhotoUpload';
 import AddDishModal from '../components/AddDishModal';
 
@@ -33,6 +34,8 @@ export default function MyTripPage() {
   const [shareLoading, setShareLoading] = useState(false);
   const [completeLoading, setCompleteLoading] = useState(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+
+  const { isSupported: isWakeLockSupported, isLocked: isWakeLocked, toggleWakeLock } = useWakeLock();
 
   // Fetch parent trail details if trail ID is saved
   useEffect(() => {
@@ -81,11 +84,13 @@ export default function MyTripPage() {
   }, [savedRestIds]);
 
   const handleRemove = (restaurantId: string) => {
+    triggerHaptic(15);
     dispatch(removeRestaurant(restaurantId));
     setShareLink(''); // Reset share link as list changed
   };
 
   const handleClear = () => {
+    triggerHaptic(20);
     if (window.confirm('Are you sure you want to clear your saved food trail?')) {
       dispatch(clearTrip());
       setShareLink('');
@@ -95,6 +100,7 @@ export default function MyTripPage() {
   // Generate share ID in backend and construct WhatsApp share link
   const handleGenerateShare = async () => {
     if (savedRestIds.length === 0) return;
+    triggerHaptic(15);
     setShareLoading(true);
     setShareLink('');
 
@@ -117,7 +123,34 @@ export default function MyTripPage() {
     }
   };
 
+  // Native PWA Share sheet (WhatsApp, iMessage, AirDrop, etc.)
+  const handleNativeShare = async () => {
+    triggerHaptic(15);
+    const tripCity = detectedCity || user?.profile?.city;
+    let link = shareLink;
+    if (!link) {
+      setShareLoading(true);
+      try {
+        const data = await createSharedTrip(savedRestIds, savedTrailId || undefined);
+        link = `${window.location.origin}/trip/shared/${data.shareId}`;
+        setShareLink(link);
+      } catch (err) {
+        console.error('Failed to create share trip:', err);
+      } finally {
+        setShareLoading(false);
+      }
+    }
+    if (link) {
+      await shareFoodTrail({
+        title: 'FoodTrail Walking Route',
+        text: `Check out my walkable food trail route${tripCity ? ` in ${tripCity}` : ''}!`,
+        url: link,
+      });
+    }
+  };
+
   const copyToClipboard = () => {
+    triggerHaptic(15);
     if (!shareLink) return;
     navigator.clipboard.writeText(shareLink);
     alert('Share link copied to clipboard!');
@@ -129,6 +162,7 @@ export default function MyTripPage() {
       return;
     }
     
+    triggerHaptic(30);
     setCompleteLoading(true);
     try {
       const data = await completeWalk(savedTrailId || undefined);
@@ -201,33 +235,68 @@ export default function MyTripPage() {
               </button>
             </div>
           )}
-          <div className="flex justify-end mb-8 gap-4 flex-col sm:flex-row">
-            <button
-              type="button"
-              className="bg-transparent text-text-secondary border border-white/10 rounded-sm px-5 py-3 font-semibold cursor-pointer transition-all duration-300 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500 flex items-center justify-center gap-2"
-              onClick={handleClear}
-            >
-              <Trash2 className="w-4 h-4 shrink-0" />
-              <span>Clear Route</span>
-            </button>
-            <button
-              type="button"
-              className="bg-[#25d366] text-white border-none rounded-sm px-5 py-3 font-bold cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(37,211,102,0.25)] hover:bg-[#20ba5a] hover:scale-[1.02]"
-              onClick={handleGenerateShare}
-              disabled={shareLoading}
-            >
-              <MessageCircle className="w-4 h-4 shrink-0" />
-              <span>{shareLoading ? 'Generating...' : 'Share on WhatsApp'}</span>
-            </button>
-            <button
-              type="button"
-              className="bg-accent text-white border-none rounded-sm px-5 py-3 font-bold cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(241,128,36,0.25)] hover:bg-accent-hover hover:scale-[1.02]"
-              onClick={handleCompleteWalk}
-              disabled={completeLoading}
-            >
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{completeLoading ? 'Completing...' : 'Complete Walk'}</span>
-            </button>
+          <div className="flex justify-between items-center mb-8 gap-4 flex-wrap">
+            {/* Screen Wake Lock Toggle */}
+            {isWakeLockSupported && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic(15);
+                  toggleWakeLock();
+                }}
+                className={`border rounded-sm px-4 py-2.5 text-xs font-semibold cursor-pointer transition-all duration-300 flex items-center gap-2 ${
+                  isWakeLocked
+                    ? 'bg-accent/20 border-accent text-accent shadow-[0_0_12px_rgba(241,128,36,0.3)]'
+                    : 'bg-bg-tertiary/40 border-white/10 text-text-secondary hover:text-text-primary hover:border-white/20'
+                }`}
+                title="Prevent screen from sleeping while walking"
+              >
+                {isWakeLocked ? <Sun className="w-4 h-4 text-accent animate-pulse" /> : <SunMedium className="w-4 h-4" />}
+                <span>{isWakeLocked ? 'Screen Awake: ON' : 'Keep Screen Awake'}</span>
+              </button>
+            )}
+
+            <div className="flex items-center gap-3 flex-wrap ml-auto w-full sm:w-auto justify-end">
+              <button
+                type="button"
+                className="bg-transparent text-text-secondary border border-white/10 rounded-sm px-4 py-2.5 text-sm font-semibold cursor-pointer transition-all duration-300 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500 flex items-center justify-center gap-2"
+                onClick={handleClear}
+              >
+                <Trash2 className="w-4 h-4 shrink-0" />
+                <span>Clear</span>
+              </button>
+
+              <button
+                type="button"
+                className="bg-bg-tertiary text-text-primary border border-white/10 rounded-sm px-4 py-2.5 text-sm font-semibold cursor-pointer transition-all duration-300 hover:bg-white/10 flex items-center justify-center gap-2"
+                onClick={handleNativeShare}
+                disabled={shareLoading}
+                title="Share route via AirDrop, Messages, or social apps"
+              >
+                <Share2 className="w-4 h-4 shrink-0 text-accent" />
+                <span>Share</span>
+              </button>
+
+              <button
+                type="button"
+                className="bg-[#25d366] text-white border-none rounded-sm px-4 py-2.5 text-sm font-bold cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(37,211,102,0.25)] hover:bg-[#20ba5a] hover:scale-[1.02]"
+                onClick={handleGenerateShare}
+                disabled={shareLoading}
+              >
+                <MessageCircle className="w-4 h-4 shrink-0" />
+                <span>{shareLoading ? 'Generating...' : 'WhatsApp'}</span>
+              </button>
+
+              <button
+                type="button"
+                className="bg-accent text-white border-none rounded-sm px-5 py-2.5 text-sm font-bold cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(241,128,36,0.25)] hover:bg-accent-hover hover:scale-[1.02]"
+                onClick={handleCompleteWalk}
+                disabled={completeLoading}
+              >
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{completeLoading ? 'Completing...' : 'Complete Walk'}</span>
+              </button>
+            </div>
           </div>
 
           {shareLink && (

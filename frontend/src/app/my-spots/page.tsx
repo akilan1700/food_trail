@@ -26,6 +26,7 @@ import {
   Navigation,
   Loader2,
   MessageSquare,
+  Star,
 } from 'lucide-react';
 
 export default function MySpotsPage() {
@@ -145,7 +146,7 @@ export default function MySpotsPage() {
                     className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-amber-500 hover:bg-amber-400 text-black text-xs font-black shadow-md flex items-center gap-1 cursor-pointer transition-all hover:scale-105"
                     title="Click to view & write reviews and comments"
                   >
-                    <span>★</span>
+                    <Star className="w-3.5 h-3.5 fill-black text-black shrink-0" />
                     <span>{spot.rating > 0 ? spot.rating.toFixed(1) : ''}</span>
                     {spot.reviewCount !== undefined && spot.reviewCount > 0 && (
                       <span className="text-[0.65rem] font-bold opacity-80">({spot.reviewCount})</span>

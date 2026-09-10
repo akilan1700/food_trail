@@ -26,6 +26,7 @@ import {
   MapPin,
   X,
   Loader2,
+  Star,
 } from 'lucide-react';
 
 const BUSY_STATUSES = ['Plenty of Tables', 'Filling Up', '~15 Min Wait', 'Closed'] as const;
@@ -366,8 +367,9 @@ export default function AdminRestaurantsPage() {
                         <span className="font-bold text-text-primary text-xs">
                           {rest.totalDishes || 0} Total
                         </span>
-                        <span className="text-[0.65rem] text-amber-400 font-semibold">
-                          ★ {rest.signatureDishes || 0} Signature
+                        <span className="text-[0.65rem] text-amber-400 font-semibold flex items-center gap-1">
+                          <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400 shrink-0" />
+                          <span>{rest.signatureDishes || 0} Signature</span>
                         </span>
                       </div>
                     </td>

@@ -24,6 +24,7 @@ import {
   ArrowRight,
   MapPin,
   Loader2,
+  Star,
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
@@ -240,8 +241,9 @@ export default function AdminDashboardPage() {
                     {rest.totalDishes || 0}
                   </td>
                   <td className="py-3 px-3">
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
-                      ★ {rest.signatureDishes || 0}
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20 text-xs">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
+                      <span>{rest.signatureDishes || 0}</span>
                     </span>
                   </td>
                   <td className="py-3 px-3">

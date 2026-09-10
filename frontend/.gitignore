@@ -36,3 +36,7 @@ yarn-error.log*
 
 # ESLint cache
 .eslintcache
+
+# TypeScript build info cache
+*.tsbuildinfo
+tsconfig.tsbuildinfo

@@ -13,7 +13,7 @@ import { usePwaInstall, useNetworkStatus, triggerHaptic } from '../services/useP
 import { clearOfflineQueue } from '../services/offlineSync';
 import LoadingScreen from '../components/LoadingScreen';
 import { useRouter } from 'next/navigation';
-import { Settings, Bell, User, Check, X, ShieldAlert, Pencil, Sparkles, Smartphone, Download, Database, RefreshCw, Trash2, Wifi } from 'lucide-react';
+import { Settings, Bell, User, Check, X, ShieldAlert, Pencil, Sparkles, Smartphone, Download, Database, RefreshCw, Trash2 } from 'lucide-react';
 
 /**
  * SettingsPage component allowing users to view and update their profile details,

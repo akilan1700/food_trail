@@ -77,10 +77,11 @@ export function useNetworkStatus(
     window.addEventListener('foodtrail_offline_queue_changed', onQueueChanged);
     window.addEventListener('foodtrail_offline_synced', onSynced);
 
-    // Initial check on mount
-    setPendingCount(getPendingMutationCount());
+    // Initial sync check on mount
     if (navigator.onLine && mutationProcessor && getPendingMutationCount() > 0) {
-      handleSync();
+      void Promise.resolve().then(() => {
+        handleSync();
+      });
     }
 
     return () => {

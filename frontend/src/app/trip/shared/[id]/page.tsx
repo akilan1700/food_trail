@@ -11,7 +11,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import { SavedTrip, getSharedTrip, formatPhotoUrl, getGoogleMapsUrl } from '../../../services/api';
-import { AlertCircle, Download, MapPin, Star } from 'lucide-react';
+import { AlertCircle, Download, MapPin, Star, UtensilsCrossed } from 'lucide-react';
 
 export default function SharedTripViewPage() {
   const { id } = useParams();
@@ -145,7 +145,7 @@ export default function SharedTripViewPage() {
         </>
       ) : (
         <div className="text-center py-20 px-8 bg-bg-tertiary/20 rounded-lg border border-dashed border-white/8">
-          <div className="text-[4.5rem] mb-4 text-text-muted">🍽️</div>
+          <UtensilsCrossed className="w-16 h-16 text-text-muted mx-auto mb-4 shrink-0" />
           <h3 className="text-2xl font-bold mb-2">Empty route shared</h3>
           <p className="text-text-secondary text-[0.95rem] mb-6 max-w-[420px] mx-auto">This shared link doesn&apos;t contain any restaurant stops.</p>
         </div>

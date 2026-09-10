@@ -1,0 +1,10 @@
+# File: frontend/public/_redirects
+# Description: Cloudflare Pages redirection and Single Page Application rewrite rules.
+# Author: Akilan M
+# Created: 2026-09-10T16:03:30+05:30
+
+# Shared trip dynamic route fallback rewrite
+/trip/shared/* /trip/shared/:splat 200
+
+# Default Single Page App fallback for all client routes
+/* /index.html 200

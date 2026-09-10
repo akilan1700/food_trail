@@ -1,0 +1,7 @@
+# File: admin-frontend/public/_redirects
+# Description: Render / SPA redirect and fallback rules for the FoodTrail Admin portal.
+# Author: Akilan M
+# Created: 2026-09-10T16:03:30+05:30
+
+# Default Single Page App fallback for admin dashboard routes
+/* /index.html 200

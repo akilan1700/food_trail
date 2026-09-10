@@ -1,0 +1,70 @@
+# File: render.yaml
+# Description: Render Blueprint Infrastructure-as-Code definition for FoodTrail backend and admin panel.
+# Author: Akilan M
+# Created: 2026-09-10T16:03:30+05:30
+
+services:
+  # ==============================================================================
+  # 1. FoodTrail Express Backend API Web Service
+  # ==============================================================================
+  - type: web
+    name: foodtrail-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: ADMIN_FRONTEND_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        value: FoodTrail Puducherry
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: ADMIN_EMAIL
+        value: admin@foodtrail.com
+      - key: ADMIN_MPIN
+        sync: false
+
+  # ==============================================================================
+  # 2. FoodTrail Admin Dashboard (Static Web Service)
+  # ==============================================================================
+  - type: web
+    name: foodtrail-admin
+    runtime: static
+    rootDir: admin-frontend
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./out
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false

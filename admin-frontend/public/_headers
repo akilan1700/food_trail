@@ -1,0 +1,10 @@
+# File: admin-frontend/public/_headers
+# Description: Security response headers for the FoodTrail Admin portal.
+# Author: Akilan M
+# Created: 2026-09-10T16:03:30+05:30
+
+# Global Security Headers
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

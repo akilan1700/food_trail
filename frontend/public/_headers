@@ -1,0 +1,23 @@
+# File: frontend/public/_headers
+# Description: Cloudflare Pages HTTP response headers for security and optimal caching policies.
+# Author: Akilan M
+# Created: 2026-09-10T16:03:30+05:30
+
+# Global Security Headers
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(self), camera=(self), microphone=()
+
+# Service Worker - Never cache aggressively so PWA updates immediately
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Web App Manifest
+/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Static Immutable Next.js Assets
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable

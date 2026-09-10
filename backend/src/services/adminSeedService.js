@@ -16,16 +16,28 @@ const Admin = require('../models/Admin');
 async function seedAdminsFromConfig() {
   try {
     const configPath = path.join(__dirname, '../config/adminCredentials.json');
-    if (!fs.existsSync(configPath)) {
-      console.warn('adminCredentials.json not found at:', configPath);
-      return 0;
+    let adminList = [];
+    if (fs.existsSync(configPath)) {
+      const rawData = fs.readFileSync(configPath, 'utf-8');
+      adminList = JSON.parse(rawData);
     }
 
-    const rawData = fs.readFileSync(configPath, 'utf-8');
-    const adminList = JSON.parse(rawData);
+    if (!Array.isArray(adminList)) {
+      adminList = [];
+    }
 
-    if (!Array.isArray(adminList) || adminList.length === 0) {
-      console.log('No admin credentials defined in adminCredentials.json');
+    // Support dynamic admin seeding via environment variables in production
+    if (process.env.ADMIN_EMAIL && process.env.ADMIN_MPIN) {
+      adminList.push({
+        email: process.env.ADMIN_EMAIL,
+        name: process.env.ADMIN_NAME || 'FoodTrail Administrator',
+        mpin: process.env.ADMIN_MPIN,
+        role: 'superadmin',
+      });
+    }
+
+    if (adminList.length === 0) {
+      console.log('No admin credentials defined in config or environment.');
       return 0;
     }
 

@@ -78,7 +78,7 @@ export default function PwaInstallBanner() {
     <aside aria-label="Application Notifications" className="w-full">
       {/* 1. App Update Banner */}
       {updateAvailable && (
-        <div className="bg-gradient-to-r from-accent to-orange-600 text-white px-4 py-2.5 text-xs font-semibold flex items-center justify-between shadow-lg animate-fade-in">
+        <div className="bg-gradient-to-r from-accent to-orange-600 text-white pl-[max(1rem,var(--safe-area-left))] pr-[max(1rem,var(--safe-area-right))] py-2.5 text-xs font-semibold flex items-center justify-between shadow-lg animate-fade-in">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 animate-spin-slow shrink-0" />
             <span>A new version of FoodTrail is available!</span>
@@ -95,7 +95,7 @@ export default function PwaInstallBanner() {
 
       {/* 2. Offline Status Banner */}
       {!isOnline && (
-        <div className="bg-status-red/90 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-md animate-fade-in backdrop-blur-sm border-b border-red-500/30">
+        <div className="bg-status-red/90 text-white pl-[max(1rem,var(--safe-area-left))] pr-[max(1rem,var(--safe-area-right))] py-2 text-xs font-semibold flex items-center justify-between shadow-md animate-fade-in backdrop-blur-sm border-b border-red-500/30">
           <div className="flex items-center gap-2">
             <WifiOff className="w-4 h-4 shrink-0 animate-pulse" />
             <span>
@@ -112,7 +112,7 @@ export default function PwaInstallBanner() {
 
       {/* 3. Back Online Synced Toast */}
       {isOnline && showSyncSuccess && (
-        <div className="bg-status-green/90 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-md animate-fade-in backdrop-blur-sm">
+        <div className="bg-status-green/90 text-white pl-[max(1rem,var(--safe-area-left))] pr-[max(1rem,var(--safe-area-right))] py-2 text-xs font-semibold flex items-center justify-between shadow-md animate-fade-in backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>Back online! All queued offline actions were synchronized with the server.</span>
@@ -129,7 +129,7 @@ export default function PwaInstallBanner() {
 
       {/* 4. Manual Sync Button when online with pending items */}
       {isOnline && pendingCount > 0 && (
-        <div className="bg-bg-tertiary/90 border-b border-white/10 px-4 py-2 text-xs text-text-secondary flex items-center justify-between">
+        <div className="bg-bg-tertiary/90 border-b border-white/10 pl-[max(1rem,var(--safe-area-left))] pr-[max(1rem,var(--safe-area-right))] py-2 text-xs text-text-secondary flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Wifi className="w-3.5 h-3.5 text-status-green" />
             <span>{pendingCount} pending offline action{pendingCount > 1 ? 's' : ''} waiting to sync.</span>
@@ -148,7 +148,7 @@ export default function PwaInstallBanner() {
 
       {/* 5. Android / Chrome / Desktop PWA Install Prompt Banner */}
       {isInstallable && !dismissedInstall && !isStandalone && (
-        <div className="relative mx-auto max-w-[1200px] mt-2 mb-2 px-4">
+        <div className="relative mx-auto max-w-[1200px] mt-2 mb-2 pl-[max(1rem,var(--safe-area-left))] pr-[max(1rem,var(--safe-area-right))]">
           <div className="bg-gradient-to-r from-bg-secondary via-bg-tertiary to-bg-secondary border border-accent/30 rounded-xl p-3.5 md:p-4 shadow-xl flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-accent/20 border border-accent/40 flex items-center justify-center text-accent shrink-0 shadow-inner">
@@ -186,7 +186,7 @@ export default function PwaInstallBanner() {
 
       {/* 6. iOS Safari PWA Install Instructions Banner */}
       {isIosSafari && !isStandalone && !dismissedInstall && (
-        <div className="relative mx-auto max-w-[1200px] mt-2 mb-2 px-4">
+        <div className="relative mx-auto max-w-[1200px] mt-2 mb-2 pl-[max(1rem,var(--safe-area-left))] pr-[max(1rem,var(--safe-area-right))]">
           <div className="bg-bg-secondary/90 border border-white/10 rounded-xl p-3.5 text-left shadow-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">

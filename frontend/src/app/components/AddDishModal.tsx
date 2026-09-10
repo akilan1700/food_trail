@@ -102,12 +102,17 @@ export default function AddDishModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-[500px] bg-bg-secondary border border-white/8 rounded-lg shadow-2xl glass-panel overflow-hidden animate-scale-in">
+    <div
+      className="pwa-modal-overlay bg-black/70 backdrop-blur-sm animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-dish-modal-title"
+    >
+      <div className="pwa-modal-panel relative max-w-[500px] bg-bg-secondary border border-white/8 rounded-t-2xl sm:rounded-xl shadow-2xl animate-scale-in">
         {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-white/8">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-white/8 shrink-0">
           <div>
-            <h3 className="text-lg font-bold text-text-primary">Add Dish</h3>
+            <h3 id="add-dish-modal-title" className="text-lg font-bold text-text-primary">Add Dish</h3>
             <p className="text-xs text-text-secondary">Adding signature menu item to {restaurantName}</p>
           </div>
           <button
@@ -119,7 +124,7 @@ export default function AddDishModal({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="pwa-modal-body p-6 space-y-4">
           {/* Name */}
           <div>
             <label htmlFor="dishName" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">

@@ -177,21 +177,24 @@ export default function ReviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
+      className="pwa-modal-overlay bg-black/75 backdrop-blur-sm animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="review-modal-title"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] bg-bg-secondary border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scale-up"
+        className="pwa-modal-panel relative max-w-2xl bg-bg-secondary border border-white/10 rounded-t-2xl sm:rounded-2xl shadow-2xl animate-scale-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="p-6 border-b border-white/10 flex items-start justify-between gap-4 bg-bg-tertiary/40">
+        <div className="p-6 border-b border-white/10 flex items-start justify-between gap-4 bg-bg-tertiary/40 shrink-0">
           <div>
             <div className="flex items-center gap-2 text-xs font-bold text-accent uppercase tracking-widest mb-1">
               <MessageSquare className="w-3.5 h-3.5" />
               <span>Community Reviews & Ratings</span>
             </div>
-            <h2 className="text-xl md:text-2xl font-black text-text-primary tracking-tight">
+            <h2 id="review-modal-title" className="text-xl md:text-2xl font-black text-text-primary tracking-tight">
               {targetName}
             </h2>
             <div className="flex items-center gap-3 mt-2 text-sm">
@@ -218,7 +221,7 @@ export default function ReviewModal({
         </div>
 
         {/* Modal Body: Scrollable Content */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-grow">
+        <div className="pwa-modal-body p-6 space-y-6">
           {/* Error banner */}
           {errorMessage && (
             <div className="flex items-center gap-2 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs animate-shake">

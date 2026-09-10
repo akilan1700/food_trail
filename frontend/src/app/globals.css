@@ -21,6 +21,61 @@ Created: 2026-08-11T17:41:47+05:30
   --glass-card-hover-bg: rgba(31, 41, 55, 0.6);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-shadow: rgba(0, 0, 0, 0.37);
+
+  /*
+   * Cross-platform safe areas (iOS, Android Chrome, Samsung Internet, etc.)
+   * Resolved via env()/constant(); mobile fallbacks applied below when OEMs report 0.
+   */
+  --sat: 0px;
+  --sar: 0px;
+  --sab: 0px;
+  --sal: 0px;
+  --safe-min-top: 0px;
+  --safe-min-right: 0px;
+  --safe-min-bottom: 0px;
+  --safe-min-left: 0px;
+  --safe-area-top: max(var(--sat), var(--safe-min-top));
+  --safe-area-right: max(var(--sar), var(--safe-min-right));
+  --safe-area-bottom: max(var(--sab), var(--safe-min-bottom));
+  --safe-area-left: max(var(--sal), var(--safe-min-left));
+}
+
+/* Legacy iOS (constant) then modern env() — covers iOS + Android + others */
+@supports (padding: constant(safe-area-inset-top)) {
+  :root {
+    --sat: constant(safe-area-inset-top);
+    --sar: constant(safe-area-inset-right);
+    --sab: constant(safe-area-inset-bottom);
+    --sal: constant(safe-area-inset-left);
+  }
+}
+
+@supports (padding: env(safe-area-inset-top)) {
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+  }
+}
+
+/*
+ * Mobile fallbacks: many Android browsers / OEMs report 0 for gesture / nav bars
+ * even with viewport-fit=cover. Apply a modest minimum on touch phones only.
+ */
+@media (max-width: 767px) and (pointer: coarse) {
+  :root {
+    --safe-min-bottom: 12px;
+  }
+}
+
+/* Installed PWA / fullscreen on any mobile OS (Android, iOS, etc.) */
+@media (max-width: 767px) and (display-mode: standalone),
+       (max-width: 767px) and (display-mode: fullscreen),
+       (max-width: 767px) and (display-mode: minimal-ui) {
+  :root {
+    --safe-min-bottom: 16px;
+  }
 }
 
 .light {
@@ -87,13 +142,24 @@ Created: 2026-08-11T17:41:47+05:30
 }
 
 /* Base style extensions */
+html {
+  height: 100%;
+  /* iOS PWA: fill the visual viewport including under translucent status bar */
+  height: -webkit-fill-available;
+}
+
 html, body {
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   overflow-x: hidden;
+  min-height: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   -webkit-font-smoothing: antialiased;
+  /* Prevent rubber-band revealing misaligned edges in standalone PWA */
+  overscroll-behavior-y: none;
 }
 
 button, a, select, input[type="submit"] {
@@ -170,4 +236,120 @@ button, a, select, input[type="submit"] {
 
 @utility animate-pulse-glow {
   animation: pulse-glow 2s infinite ease-in-out;
+}
+
+/* PWA safe-area utilities — all mobile platforms (iOS, Android, etc.) */
+@utility safe-pt {
+  padding-top: var(--safe-area-top);
+}
+
+@utility safe-pb {
+  padding-bottom: var(--safe-area-bottom);
+}
+
+@utility safe-pl {
+  padding-left: var(--safe-area-left);
+}
+
+@utility safe-pr {
+  padding-right: var(--safe-area-right);
+}
+
+@utility safe-px {
+  padding-left: var(--safe-area-left);
+  padding-right: var(--safe-area-right);
+}
+
+@utility safe-area-inset {
+  padding-top: var(--safe-area-top);
+  padding-right: var(--safe-area-right);
+  padding-bottom: var(--safe-area-bottom);
+  padding-left: var(--safe-area-left);
+}
+
+/* App shell: sticky top chrome clears status bar / notch / cutout once */
+@utility pwa-top-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding-top: var(--safe-area-top);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Main page content: horizontal + bottom clearance for fixed bottom nav */
+@utility pwa-main {
+  flex-grow: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-top: 1rem;
+  padding-left: max(1rem, var(--safe-area-left));
+  padding-right: max(1rem, var(--safe-area-right));
+  /* ~bottom nav height + system gesture / nav inset (all mobile OS) */
+  padding-bottom: calc(7rem + var(--safe-area-bottom));
+
+  @media (min-width: 768px) {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+    padding-left: max(1.5rem, var(--safe-area-left));
+    padding-right: max(1.5rem, var(--safe-area-right));
+  }
+}
+
+/* Fixed bottom tab bar for mobile + installed PWA (Android & iOS) */
+@utility pwa-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  padding-top: 0.5rem;
+  padding-bottom: calc(0.5rem + var(--safe-area-bottom));
+  padding-left: max(0.5rem, var(--safe-area-left));
+  padding-right: max(0.5rem, var(--safe-area-right));
+}
+
+/* Full-screen modal backdrop — above chrome, inset for cutouts / gesture bars */
+@utility pwa-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-top: max(0.75rem, var(--safe-area-top));
+  padding-right: max(0.75rem, var(--safe-area-right));
+  padding-bottom: max(0.75rem, var(--safe-area-bottom));
+  padding-left: max(0.75rem, var(--safe-area-left));
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
+  @media (min-width: 640px) {
+    align-items: center;
+    padding-top: max(1rem, var(--safe-area-top));
+    padding-right: max(1rem, var(--safe-area-right));
+    padding-bottom: max(1rem, var(--safe-area-bottom));
+    padding-left: max(1rem, var(--safe-area-left));
+  }
+}
+
+/* Modal panel height constrained to visible mobile viewport (dvh for Android URL bar) */
+@utility pwa-modal-panel {
+  width: 100%;
+  max-height: calc(100vh - var(--safe-area-top) - var(--safe-area-bottom) - 1.5rem);
+  max-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom) - 1.5rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+@utility pwa-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }

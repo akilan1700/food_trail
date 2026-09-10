@@ -57,7 +57,7 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 px-4 md:px-6 py-3.5 flex justify-between items-center border-b border-white/8 glass-panel">
+    <header className="pl-[max(1rem,var(--safe-area-left))] pr-[max(1rem,var(--safe-area-right))] md:pl-[max(1.5rem,var(--safe-area-left))] md:pr-[max(1.5rem,var(--safe-area-right))] py-3.5 flex justify-between items-center border-b border-white/8 glass-panel rounded-none">
       <div className="flex items-center gap-3">
         <Logo href="/" size="sm" priority />
         {isClient && (

@@ -36,7 +36,7 @@ export default function BottomNav(): React.ReactElement | null {
   const isActive = (path: string) => pathname === path;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-bg-secondary/90 border-t border-white/8 backdrop-blur-md px-2 py-2 flex justify-around items-center overscroll-behavior-contain shadow-[0_-4px_16px_rgba(0,0,0,0.4)]">
+    <nav className="pwa-bottom-nav md:hidden bg-bg-secondary/90 border-t border-white/8 backdrop-blur-md flex justify-around items-center overscroll-behavior-contain shadow-[0_-4px_16px_rgba(0,0,0,0.4)]">
       {/* Search Tab */}
       <Link
         href="/"

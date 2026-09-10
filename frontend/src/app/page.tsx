@@ -21,7 +21,7 @@ import {
 import { useAppDispatch, useAppSelector } from './services/hooks';
 import { selectSavedRestIds, addRestaurant, removeRestaurant } from './services/tripSlice';
 import { selectCurrentUser, selectDetectedCity } from './services/authSlice';
-import { Search, Star, MapPin, Bookmark, Utensils, Plus, Store, Sparkles, ExternalLink } from 'lucide-react';
+import { Search, Star, MapPin, Bookmark, Utensils, Plus, Store, ExternalLink } from 'lucide-react';
 import AddDishModal from './components/AddDishModal';
 
 const AVAILABLE_VIBES = [

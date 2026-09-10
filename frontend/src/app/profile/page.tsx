@@ -7,7 +7,7 @@
 
 import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
-import { selectCurrentUser, clearCredentials, selectDetectedCity } from '../services/authSlice';
+import { selectCurrentUser, clearCredentials } from '../services/authSlice';
 import { selectSavedRestIds } from '../services/tripSlice';
 import LoadingScreen from '../components/LoadingScreen';
 import { useRouter } from 'next/navigation';
@@ -17,7 +17,6 @@ import Link from 'next/link';
 export default function ProfilePage() {
   const user = useAppSelector(selectCurrentUser);
   const savedRestIds = useAppSelector(selectSavedRestIds);
-  const detectedCity = useAppSelector(selectDetectedCity);
   const dispatch = useAppDispatch();
   const router = useRouter();
   useEffect(() => {

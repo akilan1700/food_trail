@@ -46,7 +46,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           const profileRes = await getAdminProfile();
           setAdmin(profileRes.admin);
           localStorage.setItem('foodtrail_admin_user', JSON.stringify(profileRes.admin));
-        } catch (err) {
+        } catch {
           console.warn('Session expired or invalid token');
           localStorage.removeItem('foodtrail_admin_jwt');
           localStorage.removeItem('foodtrail_admin_user');

@@ -23,12 +23,8 @@ import {
   MapPin,
   Plus,
   PlusCircle,
-  ExternalLink,
   Navigation,
   Loader2,
-  Sparkles,
-  ArrowLeft,
-  Calendar,
 } from 'lucide-react';
 
 const BUSY_STATUSES = ['Plenty of Tables', 'Filling Up', '~15 Min Wait', 'Closed'] as const;

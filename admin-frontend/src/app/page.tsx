@@ -22,7 +22,6 @@ import {
   Users,
   PlusCircle,
   ArrowRight,
-  TrendingUp,
   MapPin,
   Loader2,
 } from 'lucide-react';

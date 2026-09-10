@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navigation, Plus, X, ArrowLeft, Loader2, MapPin, ExternalLink, CheckCircle2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
@@ -24,9 +24,9 @@ export default function AddSpotPage() {
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [area, setArea] = useState('');
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
+  const [area, setArea] = useState(detectedCity || '');
+  const [latitude, setLatitude] = useState(detectedLat ? detectedLat.toFixed(6) : '');
+  const [longitude, setLongitude] = useState(detectedLng ? detectedLng.toFixed(6) : '');
   const [vibeInput, setVibeInput] = useState('');
   const [vibeTags, setVibeTags] = useState<string[]>([]);
   const [photoUrl, setPhotoUrl] = useState('');
@@ -42,19 +42,6 @@ export default function AddSpotPage() {
     lat: number;
     lng: number;
   } | null>(null);
-
-  // Sync client-side detected location on mount to avoid SSR hydration mismatches
-  useEffect(() => {
-    if (detectedCity && !area) {
-      setArea(detectedCity);
-    }
-    if (detectedLat && !latitude) {
-      setLatitude(detectedLat.toFixed(6));
-    }
-    if (detectedLng && !longitude) {
-      setLongitude(detectedLng.toFixed(6));
-    }
-  }, [detectedCity, detectedLat, detectedLng, area, latitude, longitude]);
 
   /**
    * Adds a new vibe tag to the restaurant's vibe list.

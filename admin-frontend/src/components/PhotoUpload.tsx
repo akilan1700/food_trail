@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useState, useRef, ChangeEvent } from 'react';
-import { UploadCloud, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import { UploadCloud, X, Loader2 } from 'lucide-react';
 import { uploadImage, deleteUploadedImage, formatPhotoUrl } from '../services/api';
 
 interface PhotoUploadProps {

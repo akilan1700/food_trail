@@ -26,8 +26,6 @@ import {
   MapPin,
   X,
   Loader2,
-  Sparkles,
-  ExternalLink,
 } from 'lucide-react';
 
 const BUSY_STATUSES = ['Plenty of Tables', 'Filling Up', '~15 Min Wait', 'Closed'] as const;
@@ -62,7 +60,6 @@ export default function AdminRestaurantsPage() {
 
   const fetchRestaurants = async () => {
     try {
-      setLoading(true);
       const data = await getAdminRestaurants();
       setRestaurants(data);
     } catch (err) {
@@ -73,7 +70,23 @@ export default function AdminRestaurantsPage() {
   };
 
   useEffect(() => {
-    fetchRestaurants();
+    let isMounted = true;
+    async function loadData() {
+      try {
+        const data = await getAdminRestaurants();
+        if (isMounted) {
+          setRestaurants(data);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to fetch restaurants:', err);
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const uniqueAreas = useMemo(() => {

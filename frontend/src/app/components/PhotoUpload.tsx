@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, ChangeEvent } from 'react';
+import { useState, useRef, ChangeEvent } from 'react';
 import { uploadImage, deleteUploadedImage, formatPhotoUrl } from '../services/api';
 import { Camera, AlertCircle, X, Loader2 } from 'lucide-react';
 
@@ -22,21 +22,10 @@ export default function PhotoUpload({ onUploadSuccess, label = 'Upload Photo', v
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [previewUrl, setPreviewUrl] = useState<string | null>(value ? formatPhotoUrl(value) : null);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync / reset preview when parent value changes or is cleared
-  useEffect(() => {
-    if (!value) {
-      setPreviewUrl(null);
-      setErrorMsg('');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    } else {
-      setPreviewUrl(formatPhotoUrl(value));
-    }
-  }, [value]);
+  const previewUrl = value ? formatPhotoUrl(value) : localPreview;
 
   /**
    * Handles deleting/clearing the selected image and removes it from Cloudinary.
@@ -47,7 +36,8 @@ export default function PhotoUpload({ onUploadSuccess, label = 'Upload Photo', v
     if (onClear) {
       onClear();
     }
-    setPreviewUrl(null);
+    setLocalPreview(null);
+    setErrorMsg('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -72,7 +62,7 @@ export default function PhotoUpload({ onUploadSuccess, label = 'Upload Photo', v
     // Generate local preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPreviewUrl(reader.result as string);
+      setLocalPreview(reader.result as string);
     };
     reader.readAsDataURL(file);
 
@@ -83,6 +73,7 @@ export default function PhotoUpload({ onUploadSuccess, label = 'Upload Photo', v
       const response = await uploadImage(file, folder);
       if (response.success && response.fileId) {
         onUploadSuccess(response.fileId);
+        setLocalPreview(null);
       } else {
         setErrorMsg('Upload failed: Did not receive File ID.');
       }

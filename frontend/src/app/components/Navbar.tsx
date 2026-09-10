@@ -11,7 +11,7 @@ import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectCurrentUser, selectDetectedCity, setDetectedLocation } from '../services/authSlice';
 import TripLink from './TripLink';
 import Logo from './Logo';
-import { Compass, Search, MapPin, PlusCircle, User, Settings, Store } from 'lucide-react';
+import { Compass, Search, PlusCircle, User, Settings, Store } from 'lucide-react';
 
 export default function Navbar() {
   const dispatch = useAppDispatch();

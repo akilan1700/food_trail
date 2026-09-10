@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Trail, createTrail, Restaurant, Stop } from '../services/api';
 import { Plus, Trash2, X } from 'lucide-react';
 import { useAppSelector } from '../services/hooks';
@@ -24,18 +24,11 @@ export default function TrailCreator({ allRestaurants, onSuccess, onCancel }: Tr
   const [formDuration, setFormDuration] = useState(30);
   const [formDistance, setFormDistance] = useState(1200);
   const detectedCity = useAppSelector(selectDetectedCity);
-  const [formArea, setFormArea] = useState('');
+  const [formArea, setFormArea] = useState(detectedCity || '');
   const [formPhotoUrl, setFormPhotoUrl] = useState('');
   const [formStops, setFormStops] = useState<{ order: number; restaurantId: string; description: string }[]>([
     { order: 1, restaurantId: '', description: '' }
   ]);
-
-  // Sync detected city on mount to avoid SSR hydration mismatch
-  useEffect(() => {
-    if (detectedCity && !formArea) {
-      setFormArea(detectedCity);
-    }
-  }, [detectedCity, formArea]);
 
   /**
    * Resets all fields in the walking trail form.

@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, FormEvent, useTransition } from 'react';
+import React, { useState, useEffect, useMemo, FormEvent } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   getAdminDishes,
@@ -27,7 +27,6 @@ import {
   Edit2,
   Trash2,
   Star,
-  CheckCircle2,
   X,
   Loader2,
   Store,
@@ -66,7 +65,6 @@ export default function AdminDishesPage() {
 
   const fetchData = async () => {
     try {
-      setLoading(true);
       const [dishesData, restsData] = await Promise.all([
         getAdminDishes(),
         getAdminRestaurants(),
@@ -81,16 +79,28 @@ export default function AdminDishesPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Update selected restaurant if URL param changes
-  useEffect(() => {
-    const rId = searchParams.get('restaurantId');
-    if (rId) {
-      setSelectedRestaurant(rId);
+    let isMounted = true;
+    async function init() {
+      try {
+        const [dishesData, restsData] = await Promise.all([
+          getAdminDishes(),
+          getAdminRestaurants(),
+        ]);
+        if (isMounted) {
+          setDishes(dishesData);
+          setRestaurants(restsData);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to load dishes and restaurants:', err);
+        if (isMounted) setLoading(false);
+      }
     }
-  }, [searchParams]);
+    init();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredDishes = useMemo(() => {
     return dishes.filter((d) => {

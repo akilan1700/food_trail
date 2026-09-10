@@ -80,7 +80,7 @@ export default function BottomNav(): React.ReactElement | null {
         <Bookmark className="w-5.5 h-5.5 shrink-0" />
         <span className="text-[0.65rem] uppercase tracking-wider">My Trip</span>
         {count > 0 && (
-          <span className="absolute top-0 right-1.5 bg-accent text-white w-4 h-4 rounded-full flex items-center justify-center text-[0.6rem] font-black border border-bg-secondary shadow-[0_0_8px_rgba(244,63,94,0.5)]">
+          <span className="absolute top-0 right-1.5 bg-accent text-white w-4 h-4 rounded-full flex items-center justify-center text-[0.6rem] font-black border border-bg-secondary shadow-[0_0_8px_rgba(241,128,36,0.5)]">
             {count}
           </span>
         )}

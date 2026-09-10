@@ -43,6 +43,11 @@ async function adminMiddleware(req, res, next) {
     try {
       decoded = jwt.verify(token, JWT_SECRET);
     } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          error: { message: 'Admin session expired after 1 hour. Please log in again.' },
+        });
+      }
       return res.status(401).json({
         error: { message: 'Invalid or expired administrator token.' },
       });

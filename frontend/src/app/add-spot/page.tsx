@@ -215,7 +215,7 @@ export default function AddSpotPage() {
             <button
               type="button"
               onClick={() => setIsAddDishOpen(true)}
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-accent to-rose-600 hover:from-accent-hover hover:to-rose-700 text-white font-bold px-6 py-3.5 rounded shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-accent to-orange-600 hover:from-accent-hover hover:to-orange-700 text-white font-bold px-6 py-3.5 rounded shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Add Signature Dish</span>
@@ -439,7 +439,7 @@ export default function AddSpotPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-accent to-rose-600 hover:from-accent-hover hover:to-rose-700 text-white font-extrabold p-4 rounded shadow-lg transition-all duration-300 disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-accent to-orange-600 hover:from-accent-hover hover:to-orange-700 text-white font-extrabold p-4 rounded shadow-lg transition-all duration-300 disabled:opacity-50"
           >
             {loading ? (
               <>

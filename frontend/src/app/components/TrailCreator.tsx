@@ -262,7 +262,7 @@ export default function TrailCreator({ allRestaurants, onSuccess, onCancel }: Tr
         </button>
         <button
           type="submit"
-          className="bg-accent text-white border-none rounded-sm px-8 py-3 font-bold cursor-pointer transition-all duration-300 hover:bg-accent-hover shadow-[0_4px_12px_rgba(244,63,94,0.25)]"
+          className="bg-accent text-white border-none rounded-sm px-8 py-3 font-bold cursor-pointer transition-all duration-300 hover:bg-accent-hover shadow-[0_4px_12px_rgba(241,128,36,0.25)]"
         >
           Save Walking Trail
         </button>

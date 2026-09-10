@@ -189,7 +189,7 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 w-full bg-accent text-white border-none rounded-sm py-3.5 font-bold cursor-pointer transition-all duration-300 hover:bg-accent-hover hover:scale-[1.02] flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(244,63,94,0.3)] disabled:opacity-50 disabled:pointer-events-none"
+              className="mt-2 w-full bg-accent text-white border-none rounded-sm py-3.5 font-bold cursor-pointer transition-all duration-300 hover:bg-accent-hover hover:scale-[1.02] flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(241,128,36,0.3)] disabled:opacity-50 disabled:pointer-events-none"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -321,7 +321,7 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 w-full bg-accent text-white border-none rounded-sm py-3.5 font-bold cursor-pointer transition-all duration-300 hover:bg-accent-hover hover:scale-[1.02] flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(244,63,94,0.3)] disabled:opacity-50 disabled:pointer-events-none"
+            className="mt-2 w-full bg-accent text-white border-none rounded-sm py-3.5 font-bold cursor-pointer transition-all duration-300 hover:bg-accent-hover hover:scale-[1.02] flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(241,128,36,0.3)] disabled:opacity-50 disabled:pointer-events-none"
           >
             {loading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

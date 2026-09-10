@@ -309,7 +309,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between p-3.5 bg-bg-tertiary/20 rounded-sm border border-white/5">
                 <div className="flex flex-col text-left">
                   <span className="font-semibold text-text-primary text-sm">Push notifications</span>
-                  <span className="text-xs text-text-secondary mt-0.5">Receive updates on trail status and busy indicators.</span>
+                  <span className="text-xs text-text-secondary mt-0.5">Receive updates on trail status and community reviews.</span>
                 </div>
                 <label className={`relative inline-flex items-center select-none ${isEditing ? 'cursor-pointer' : 'cursor-default'}`}>
                   <input
@@ -347,7 +347,7 @@ export default function SettingsPage() {
           <button
             type="submit"
             disabled={saving}
-            className="mt-4 w-full bg-accent text-white border-none rounded-sm py-4 font-bold cursor-pointer transition-all duration-300 hover:bg-accent-hover hover:scale-[1.01] flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(244,63,94,0.25)] disabled:opacity-50"
+            className="mt-4 w-full bg-accent text-white border-none rounded-sm py-4 font-bold cursor-pointer transition-all duration-300 hover:bg-accent-hover hover:scale-[1.01] flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(241,128,36,0.25)] disabled:opacity-50"
           >
             {saving ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

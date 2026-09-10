@@ -159,7 +159,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-white/5 pt-5">
           <Link
             href="/my-spots"
-            className="bg-accent text-white border-none rounded-sm py-3 text-center font-bold text-xs transition-all hover:bg-accent-hover block shadow-[0_4px_12px_rgba(244,63,94,0.25)]"
+            className="bg-accent text-white border-none rounded-sm py-3 text-center font-bold text-xs transition-all hover:bg-accent-hover block shadow-[0_4px_12px_rgba(241,128,36,0.25)]"
           >
             My Added Spots ({user.profile?.cafesDiscovered || 0})
           </Link>

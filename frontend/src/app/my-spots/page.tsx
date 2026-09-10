@@ -5,12 +5,11 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   getMySpots,
-  updateBusyStatus,
   Restaurant,
   formatPhotoUrl,
   getGoogleMapsUrl,
@@ -18,6 +17,7 @@ import {
 import { useAppSelector } from '../services/hooks';
 import { selectCurrentUser } from '../services/authSlice';
 import AddDishModal from '../components/AddDishModal';
+import ReviewModal from '../components/ReviewModal';
 import {
   Store,
   MapPin,
@@ -25,9 +25,8 @@ import {
   PlusCircle,
   Navigation,
   Loader2,
+  MessageSquare,
 } from 'lucide-react';
-
-const BUSY_STATUSES = ['Plenty of Tables', 'Filling Up', '~15 Min Wait', 'Closed'] as const;
 
 export default function MySpotsPage() {
   const user = useAppSelector(selectCurrentUser);
@@ -36,6 +35,19 @@ export default function MySpotsPage() {
   const [mySpots, setMySpots] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAddDishRest, setSelectedAddDishRest] = useState<{ id: string; name: string } | null>(null);
+  const [selectedReviewSpot, setSelectedReviewSpot] = useState<Restaurant | null>(null);
+
+  const loadUserSpots = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await getMySpots();
+      setMySpots(data);
+    } catch (err) {
+      console.error('Failed to load user spots:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -43,33 +55,10 @@ export default function MySpotsPage() {
       return;
     }
 
-    async function loadUserSpots() {
-      try {
-        setLoading(true);
-        const data = await getMySpots();
-        setMySpots(data);
-      } catch (err) {
-        console.error('Failed to load user spots:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadUserSpots();
-  }, [user, router]);
-
-  const handleBusyStatusChange = async (spotId: string, newStatus: Restaurant['busyStatus']) => {
-    // Optimistically update UI
-    setMySpots((prev) =>
-      prev.map((s) => (s._id === spotId ? { ...s, busyStatus: newStatus } : s))
-    );
-
-    try {
-      await updateBusyStatus(spotId, newStatus);
-    } catch (err) {
-      console.error('Failed to update spot busy status:', err);
-    }
-  };
+    Promise.resolve().then(() => {
+      loadUserSpots();
+    });
+  }, [user, router, loadUserSpots]);
 
   if (!user) {
     return null;
@@ -150,10 +139,18 @@ export default function MySpotsPage() {
                   </div>
 
                   {/* Rating Badge */}
-                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-amber-500 text-black text-xs font-black shadow-md flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReviewSpot(spot)}
+                    className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-amber-500 hover:bg-amber-400 text-black text-xs font-black shadow-md flex items-center gap-1 cursor-pointer transition-all hover:scale-105"
+                    title="Click to view & write reviews and comments"
+                  >
                     <span>★</span>
-                    <span>{spot.rating || 4.5}</span>
-                  </div>
+                    <span>{spot.rating > 0 ? spot.rating.toFixed(1) : ''}</span>
+                    {spot.reviewCount !== undefined && spot.reviewCount > 0 && (
+                      <span className="text-[0.65rem] font-bold opacity-80">({spot.reviewCount})</span>
+                    )}
+                  </button>
                 </div>
 
                 {/* Spot Details */}
@@ -192,52 +189,36 @@ export default function MySpotsPage() {
               </div>
 
               {/* Bottom Controls */}
-              <div className="p-5 pt-0 space-y-3">
-                {/* Live Busy Status Selector */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-bg-tertiary/60 border border-white/5">
-                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
-                    Live Crowd:
-                  </span>
-                  <select
-                    value={spot.busyStatus}
-                    onChange={(e) =>
-                      handleBusyStatusChange(spot._id, e.target.value as Restaurant['busyStatus'])
-                    }
-                    className={`px-3 py-1 rounded-full text-xs font-bold border focus:outline-none cursor-pointer transition-all ${
-                      spot.busyStatus === 'Plenty of Tables'
-                        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                        : spot.busyStatus === 'Filling Up'
-                        ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                        : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                    }`}
-                  >
-                    {BUSY_STATUSES.map((status) => (
-                      <option key={status} value={status} className="bg-bg-secondary text-text-primary">
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
+              <div className="p-5 pt-0">
                 {/* Actions */}
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setSelectedAddDishRest({ id: spot._id, name: spot.name })}
-                    className="flex-1 py-2.5 rounded-lg bg-accent/10 hover:bg-accent hover:text-white border border-accent/20 text-accent font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="py-2.5 rounded-lg bg-accent/10 hover:bg-accent hover:text-white border border-accent/20 text-accent font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Dish</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReviewSpot(spot)}
+                    className="py-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500 hover:text-black border border-amber-500/20 text-amber-400 font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    title="View & write user reviews"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Reviews {spot.reviewCount ? `(${spot.reviewCount})` : ''}</span>
                   </button>
 
                   <a
                     href={getGoogleMapsUrl(spot)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 py-2.5 rounded-lg bg-bg-tertiary hover:bg-white/10 border border-white/8 text-text-secondary hover:text-text-primary font-semibold text-xs transition-all flex items-center justify-center gap-1.5"
+                    className="py-2.5 rounded-lg bg-bg-tertiary hover:bg-white/10 border border-white/8 text-text-secondary hover:text-text-primary font-semibold text-xs transition-all flex items-center justify-center gap-1"
                   >
                     <Navigation className="w-3.5 h-3.5" />
-                    <span>Directions</span>
+                    <span>Map</span>
                   </a>
                 </div>
               </div>
@@ -255,6 +236,22 @@ export default function MySpotsPage() {
           onClose={() => setSelectedAddDishRest(null)}
           onDishAdded={() => {
             setSelectedAddDishRest(null);
+          }}
+        />
+      )}
+
+      {/* Community Ratings, Reviews & Comments Modal */}
+      {selectedReviewSpot && (
+        <ReviewModal
+          isOpen={!!selectedReviewSpot}
+          targetType="restaurant"
+          targetId={selectedReviewSpot._id}
+          targetName={selectedReviewSpot.name}
+          currentRating={selectedReviewSpot.rating}
+          reviewCount={selectedReviewSpot.reviewCount}
+          onClose={() => setSelectedReviewSpot(null)}
+          onReviewUpdated={() => {
+            loadUserSpots();
           }}
         />
       )}

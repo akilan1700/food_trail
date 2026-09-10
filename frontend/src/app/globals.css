@@ -49,16 +49,20 @@ Created: 2026-08-11T17:41:47+05:30
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
 
-  --color-accent: #f43f5e; /* Rose / Neon Coral */
-  --color-accent-hover: #e11d48;
-  --color-accent-light: rgba(244, 63, 94, 0.15);
+  --color-accent: #f18024; /* Logo Primary Warm Orange */
+  --color-accent-hover: #d96b14;
+  --color-accent-light: rgba(241, 128, 36, 0.15);
 
-  --color-rating: #f59e0b; /* Amber */
+  --color-teal: #348f91; /* Logo Ocean Teal */
+  --color-teal-hover: #287072;
+  --color-teal-light: rgba(52, 143, 145, 0.15);
 
-  /* Live Busy Status Colors */
-  --color-status-green: #10b981;  /* Plenty of Tables */
-  --color-status-orange: #f97316; /* Filling Up */
-  --color-status-red: #ef4444;    /* ~15 Min Wait */
+  --color-rating: #f6e132; /* Logo Sunshine Yellow */
+
+  /* Status Colors */
+  --color-status-green: #10b981;
+  --color-status-orange: #f18024;
+  --color-status-red: #ef4444;
 
   --animate-fade-in: fadeIn 0.4s ease-out forwards;
   --animate-status-pulse: status-pulse 2s infinite ease-in-out;
@@ -70,9 +74,9 @@ Created: 2026-08-11T17:41:47+05:30
   }
 
   @keyframes pulse-glow {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7); }
-    70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(241, 128, 36, 0.7); }
+    70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(241, 128, 36, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(241, 128, 36, 0); }
   }
 
   @keyframes status-pulse {
@@ -133,7 +137,7 @@ button, a, select, input[type="submit"] {
   &:hover {
     background: var(--glass-card-hover-bg);
     transform: translateY(-4px);
-    border-color: rgba(244, 63, 94, 0.3);
+    border-color: rgba(241, 128, 36, 0.35);
   }
 }
 

@@ -143,20 +143,11 @@ export default function MyTripPage() {
     }
   };
 
-  const getStatusDotClass = (status: string) => {
-    switch (status) {
-      case 'Plenty of Tables': return 'status-dot-green';
-      case 'Filling Up': return 'status-dot-orange';
-      case '~15 Min Wait': return 'status-dot-red';
-      default: return 'status-dot-red';
-    }
-  };
-
   return (
     <div className="max-w-[800px] mx-auto animate-fade-in">
       <section className="text-center my-8 md:my-12">
         <h1 className="text-[2.25rem] font-extrabold mb-2">My Walking Food Trail</h1>
-        <p className="text-text-secondary">Curate your custom walkable trail and keep track of live tables.</p>
+        <p className="text-text-secondary">Curate your custom walkable food trail and explore culinary spots on foot.</p>
       </section>
 
       {showSuccessBanner && (
@@ -230,7 +221,7 @@ export default function MyTripPage() {
             </button>
             <button
               type="button"
-              className="bg-accent text-white border-none rounded-sm px-5 py-3 font-bold cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(244,63,94,0.25)] hover:bg-accent-hover hover:scale-[1.02]"
+              className="bg-accent text-white border-none rounded-sm px-5 py-3 font-bold cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(241,128,36,0.25)] hover:bg-accent-hover hover:scale-[1.02]"
               onClick={handleCompleteWalk}
               disabled={completeLoading}
             >
@@ -264,7 +255,7 @@ export default function MyTripPage() {
             {savedRestaurants.map((rest, index) => {
               return (
                 <div key={rest._id} className="relative bg-bg-tertiary/30 border border-white/8 rounded-md flex gap-6 p-5 items-center flex-col sm:flex-row hover:border-white/15 glass-card">
-                  <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-6 h-6 bg-bg-primary border-3 border-accent text-text-primary rounded-full flex items-center justify-center text-[0.75rem] font-extrabold z-10 shadow-[0_0_10px_rgba(244,63,94,0.2)]">{index + 1}</div>
+                  <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-6 h-6 bg-bg-primary border-3 border-accent text-text-primary rounded-full flex items-center justify-center text-[0.75rem] font-extrabold z-10 shadow-[0_0_10px_rgba(241,128,36,0.2)]">{index + 1}</div>
                   
                   <img
                     src={formatPhotoUrl(rest.photoUrl)}
@@ -314,13 +305,9 @@ export default function MyTripPage() {
                         <MapPin className="w-3.5 h-3.5 text-text-muted group-hover/pin:text-accent shrink-0 transition-colors" />
                         <span className="hover:underline decoration-dotted underline-offset-2">{rest.area}</span>
                       </a>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}>
-                        <span className={`status-dot ${getStatusDotClass(rest.busyStatus)}`}></span>
-                        <span>{rest.busyStatus}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 text-rating font-bold">
                         <Star className="w-3.5 h-3.5 fill-rating text-rating shrink-0" />
-                        <span>{rest.rating}</span>
+                        <span>{rest.rating > 0 ? rest.rating.toFixed(1) : ''}</span>
                       </div>
                     </div>
 

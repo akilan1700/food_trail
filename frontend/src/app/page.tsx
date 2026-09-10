@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 // File: src/app/page.tsx
-// Description: Home search dashboard implementing dish-first search, dining spots directory, vibe filters, and live busy indicators.
+// Description: Home search dashboard implementing dish-first search, dining spots directory, vibe filters, and community reviews.
 // Author: Akilan M
 // Created: 2026-08-11T17:42:32+05:30
 
@@ -14,15 +14,15 @@ import {
   getDishes,
   getRestaurants,
   searchDishes,
-  updateBusyStatus,
   formatPhotoUrl,
   getGoogleMapsUrl,
 } from './services/api';
 import { useAppDispatch, useAppSelector } from './services/hooks';
 import { selectSavedRestIds, addRestaurant, removeRestaurant } from './services/tripSlice';
 import { selectCurrentUser, selectDetectedCity } from './services/authSlice';
-import { Search, Star, MapPin, Bookmark, Utensils, Plus, Store, ExternalLink } from 'lucide-react';
+import { Search, Star, MapPin, Bookmark, Utensils, Plus, Store, ExternalLink, MessageSquare } from 'lucide-react';
 import AddDishModal from './components/AddDishModal';
+import ReviewModal from './components/ReviewModal';
 
 const AVAILABLE_VIBES = [
   'Pet-friendly',
@@ -44,6 +44,13 @@ export default function HomePage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAddDishRest, setSelectedAddDishRest] = useState<{ id: string; name: string } | null>(null);
+  const [selectedReviewTarget, setSelectedReviewTarget] = useState<{
+    type: 'restaurant' | 'dish';
+    id: string;
+    name: string;
+    rating?: number;
+    reviewCount?: number;
+  } | null>(null);
 
   const isClient = useSyncExternalStore(
     () => () => {},
@@ -145,32 +152,6 @@ export default function HomePage() {
     }
   };
 
-  // Helper for busy status dot class
-  const getStatusDotClass = (status: string) => {
-    switch (status) {
-      case 'Plenty of Tables':
-        return 'status-dot-green';
-      case 'Filling Up':
-        return 'status-dot-orange';
-      case '~15 Min Wait':
-        return 'status-dot-red';
-      default:
-        return 'status-dot-red';
-    }
-  };
-
-  // Quick live status update for spots
-  const handleUpdateBusy = async (restaurantId: string, newStatus: string) => {
-    try {
-      await updateBusyStatus(restaurantId, newStatus);
-      setRestaurants((prev) =>
-        prev.map((r) => (r._id === restaurantId ? { ...r, busyStatus: newStatus as Restaurant['busyStatus'] } : r))
-      );
-    } catch (err) {
-      console.error('Failed to update busy status:', err);
-    }
-  };
-
   return (
     <div className="animate-fade-in">
       <section className="text-center my-10 md:my-14 animate-fade-in">
@@ -178,7 +159,7 @@ export default function HomePage() {
           Find {isClient && currentCity ? `the Best Food & Spots in ${currentCity}` : "Your Area's Best Food & Spots"}
         </h1>
         <p className="text-lg text-text-secondary max-w-[600px] mx-auto">
-          Explore signature dishes and all community-added dining spots with live busy statuses, vibes, and location pins.
+          Explore signature dishes and all community-added dining spots with vibes, ratings, and location pins.
         </p>
       </section>
 
@@ -186,7 +167,7 @@ export default function HomePage() {
       <section className="max-w-[680px] mx-auto mb-8">
         <form
           onSubmit={handleSearch}
-          className="flex flex-col sm:flex-row sm:bg-bg-tertiary/40 sm:border sm:border-white/8 sm:rounded-md sm:p-2 sm:shadow-lg transition-all duration-300 sm:focus-within:border-accent sm:focus-within:shadow-[0_0_15px_rgba(244,63,94,0.25)] gap-3 sm:gap-0"
+          className="flex flex-col sm:flex-row sm:bg-bg-tertiary/40 sm:border sm:border-white/8 sm:rounded-md sm:p-2 sm:shadow-lg transition-all duration-300 sm:focus-within:border-accent sm:focus-within:shadow-[0_0_15px_rgba(241,128,36,0.25)] gap-3 sm:gap-0"
         >
           <input
             type="text"
@@ -236,7 +217,7 @@ export default function HomePage() {
               onClick={() => setActiveTab('dishes')}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-300 cursor-pointer ${
                 activeTab === 'dishes'
-                  ? 'bg-accent text-white shadow-[0_4px_12px_rgba(244,63,94,0.3)]'
+                  ? 'bg-accent text-white shadow-[0_4px_12px_rgba(241,128,36,0.3)]'
                   : 'bg-bg-tertiary/40 border border-white/5 text-text-secondary hover:text-text-primary hover:bg-bg-tertiary'
               }`}
             >
@@ -249,7 +230,7 @@ export default function HomePage() {
               onClick={() => setActiveTab('spots')}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-300 cursor-pointer ${
                 activeTab === 'spots'
-                  ? 'bg-accent text-white shadow-[0_4px_12px_rgba(244,63,94,0.3)]'
+                  ? 'bg-accent text-white shadow-[0_4px_12px_rgba(241,128,36,0.3)]'
                   : 'bg-bg-tertiary/40 border border-white/5 text-text-secondary hover:text-text-primary hover:bg-bg-tertiary'
               }`}
             >
@@ -320,10 +301,26 @@ export default function HomePage() {
                                 <span>Add Dish</span>
                               </button>
                             </div>
-                            <div className="flex items-center gap-1 text-[0.85rem] text-rating font-bold shrink-0">
-                              <Star className="w-4 h-4 fill-rating text-rating shrink-0" />
-                              <span>{dish.rating || rest.rating}</span>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedReviewTarget({
+                                  type: 'dish',
+                                  id: dish._id,
+                                  name: dish.name,
+                                  rating: dish.rating,
+                                  reviewCount: dish.reviewCount,
+                                })
+                              }
+                              className="flex items-center gap-1 text-[0.8rem] text-rating font-bold shrink-0 hover:scale-105 transition-transform cursor-pointer bg-rating/10 hover:bg-rating/20 border border-rating/25 px-2 py-0.5 rounded-full"
+                              title="Click to view & write dish reviews and comments"
+                            >
+                              <Star className="w-3.5 h-3.5 fill-rating text-rating shrink-0" />
+                              <span>{dish.rating > 0 ? dish.rating.toFixed(1) : ''}</span>
+                              {dish.reviewCount !== undefined && dish.reviewCount > 0 && (
+                                <span className="text-[0.65rem] opacity-80">({dish.reviewCount})</span>
+                              )}
+                            </button>
                           </div>
 
                           <div className="flex justify-between items-center text-xs text-text-secondary">
@@ -337,10 +334,6 @@ export default function HomePage() {
                               <MapPin className="w-3.5 h-3.5 text-text-muted group-hover/pin:text-accent shrink-0 transition-colors" />
                               <span className="hover:underline decoration-dotted underline-offset-2">{rest.area}</span>
                             </a>
-                            <div className="flex items-center gap-1.5 font-semibold bg-white/3 px-2 py-1 rounded">
-                              <span className={`status-dot ${getStatusDotClass(rest.busyStatus)}`}></span>
-                              <span>{rest.busyStatus}</span>
-                            </div>
                           </div>
 
                           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -353,29 +346,51 @@ export default function HomePage() {
                         </div>
                       )}
 
-                      {rest && (
+                      <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
-                          className={
-                            isSaved
-                              ? 'w-full bg-accent text-white border border-accent p-3 rounded-sm font-semibold cursor-pointer flex items-center justify-center gap-2 text-sm'
-                              : 'w-full bg-transparent text-text-primary border border-white/10 p-3 rounded-sm font-semibold cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 text-sm hover:bg-accent-light hover:border-accent hover:text-accent'
+                          onClick={() =>
+                            setSelectedReviewTarget({
+                              type: 'dish',
+                              id: dish._id,
+                              name: dish.name,
+                              rating: dish.rating,
+                              reviewCount: dish.reviewCount,
+                            })
                           }
-                          onClick={() => toggleSaveRestaurant(rest._id)}
+                          className="bg-bg-tertiary/60 border border-white/10 hover:bg-bg-tertiary text-text-primary p-3 rounded-sm font-semibold cursor-pointer flex items-center justify-center gap-1.5 text-xs transition-all"
+                          title="View & write dish reviews and comments"
                         >
-                          {isSaved ? (
-                            <>
-                              <Bookmark className="w-4 h-4 fill-white shrink-0" />
-                              <span>Saved to Trip</span>
-                            </>
-                          ) : (
-                            <>
-                              <Bookmark className="w-4 h-4 shrink-0" />
-                              <span>Save to My Trip</span>
-                            </>
-                          )}
+                          <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Reviews {dish.reviewCount ? `(${dish.reviewCount})` : ''}</span>
                         </button>
-                      )}
+
+                        {rest ? (
+                          <button
+                            type="button"
+                            className={
+                              isSaved
+                                ? 'bg-accent text-white border border-accent p-3 rounded-sm font-semibold cursor-pointer flex items-center justify-center gap-1.5 text-xs'
+                                : 'bg-transparent text-text-primary border border-white/10 p-3 rounded-sm font-semibold cursor-pointer transition-all duration-300 flex items-center justify-center gap-1.5 text-xs hover:bg-accent-light hover:border-accent hover:text-accent'
+                            }
+                            onClick={() => toggleSaveRestaurant(rest._id)}
+                          >
+                            {isSaved ? (
+                              <>
+                                <Bookmark className="w-3.5 h-3.5 fill-white shrink-0" />
+                                <span>Saved</span>
+                              </>
+                            ) : (
+                              <>
+                                <Bookmark className="w-3.5 h-3.5 shrink-0" />
+                                <span>Save Spot</span>
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <div />
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -428,10 +443,26 @@ export default function HomePage() {
                         <MapPin className="w-3.5 h-3.5 text-accent" />
                         <span>{rest.area}</span>
                       </span>
-                      <div className="absolute top-4 right-4 flex items-center gap-1 bg-bg-primary/85 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-bold text-rating border border-white/8">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedReviewTarget({
+                            type: 'restaurant',
+                            id: rest._id,
+                            name: rest.name,
+                            rating: rest.rating,
+                            reviewCount: rest.reviewCount,
+                          })
+                        }
+                        className="absolute top-4 right-4 flex items-center gap-1 bg-bg-primary/85 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-bold text-rating border border-white/8 hover:border-rating/40 transition-all cursor-pointer shadow-md hover:scale-105"
+                        title="Click to view & write reviews and comments"
+                      >
                         <Star className="w-3.5 h-3.5 fill-rating text-rating shrink-0" />
-                        <span>{rest.rating || 4.5}</span>
-                      </div>
+                        <span>{rest.rating > 0 ? rest.rating.toFixed(1) : ''}</span>
+                        {rest.reviewCount !== undefined && rest.reviewCount > 0 && (
+                          <span className="text-[0.65rem] opacity-80">({rest.reviewCount})</span>
+                        )}
+                      </button>
                     </div>
 
                     <div className="p-6 flex flex-col flex-grow">
@@ -439,12 +470,14 @@ export default function HomePage() {
                         <h3 className="text-xl font-bold text-text-primary">{rest.name}</h3>
                       </div>
 
-                      <p className="text-sm text-text-secondary leading-relaxed mb-4 flex-grow">
-                        {rest.description || 'Marked dining spot. Add signature dishes and reviews to help the community.'}
-                      </p>
+                      {rest.description && (
+                        <p className="text-sm text-text-secondary leading-relaxed mb-4 flex-grow">
+                          {rest.description}
+                        </p>
+                      )}
 
                       <div className="border-t border-white/5 pt-4 mb-4 space-y-3">
-                        {/* Google Maps & Live Status */}
+                        {/* Google Maps */}
                         <div className="flex justify-between items-center text-xs">
                           <a
                             href={getGoogleMapsUrl(rest)}
@@ -455,11 +488,6 @@ export default function HomePage() {
                             <ExternalLink className="w-3.5 h-3.5 text-text-muted group-hover/map:text-accent" />
                             <span className="underline decoration-dotted">Google Maps</span>
                           </a>
-
-                          <div className="flex items-center gap-1.5 font-semibold bg-white/4 px-2.5 py-1 rounded">
-                            <span className={`status-dot ${getStatusDotClass(rest.busyStatus)}`}></span>
-                            <span>{rest.busyStatus}</span>
-                          </div>
                         </div>
 
                         {/* Vibe Tags */}
@@ -472,33 +500,14 @@ export default function HomePage() {
                             ))}
                           </div>
                         )}
-
-                        {/* Quick Live Status Toggle */}
-                        <div className="flex items-center gap-1.5 text-[0.7rem] text-text-muted pt-1">
-                          <span className="font-semibold">Update:</span>
-                          {(['Plenty of Tables', 'Filling Up', '~15 Min Wait'] as const).map((st) => (
-                            <button
-                              key={st}
-                              type="button"
-                              onClick={() => handleUpdateBusy(rest._id, st)}
-                              className={`px-1.5 py-0.5 rounded border transition-all cursor-pointer ${
-                                rest.busyStatus === st
-                                  ? 'border-accent bg-accent/15 text-accent font-bold'
-                                  : 'border-white/5 bg-bg-tertiary/40 text-text-secondary hover:text-text-primary'
-                              }`}
-                            >
-                              {st.split(' ')[0]}
-                            </button>
-                          ))}
-                        </div>
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-3 gap-1.5">
                         <button
                           type="button"
                           onClick={() => setSelectedAddDishRest({ id: rest._id, name: rest.name })}
-                          className="bg-bg-tertiary/60 border border-white/10 hover:bg-bg-tertiary text-text-primary p-3 rounded-sm font-semibold cursor-pointer flex items-center justify-center gap-1.5 text-xs transition-all"
+                          className="bg-bg-tertiary/60 border border-white/10 hover:bg-bg-tertiary text-text-primary p-2.5 rounded-sm font-semibold cursor-pointer flex items-center justify-center gap-1 text-[0.75rem] transition-all"
                         >
                           <Plus className="w-3.5 h-3.5 text-accent" />
                           <span>Add Dish</span>
@@ -506,15 +515,33 @@ export default function HomePage() {
 
                         <button
                           type="button"
+                          onClick={() =>
+                            setSelectedReviewTarget({
+                              type: 'restaurant',
+                              id: rest._id,
+                              name: rest.name,
+                              rating: rest.rating,
+                              reviewCount: rest.reviewCount,
+                            })
+                          }
+                          className="bg-bg-tertiary/60 border border-white/10 hover:bg-bg-tertiary text-text-primary p-2.5 rounded-sm font-semibold cursor-pointer flex items-center justify-center gap-1 text-[0.75rem] transition-all"
+                          title="View & write user reviews"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Reviews {rest.reviewCount ? `(${rest.reviewCount})` : ''}</span>
+                        </button>
+
+                        <button
+                          type="button"
                           className={
                             isSaved
-                              ? 'bg-accent text-white border border-accent p-3 rounded-sm font-semibold cursor-pointer flex items-center justify-center gap-1.5 text-xs'
-                              : 'bg-transparent text-text-primary border border-white/10 p-3 rounded-sm font-semibold cursor-pointer transition-all duration-300 flex items-center justify-center gap-1.5 text-xs hover:bg-accent-light hover:border-accent hover:text-accent'
+                              ? 'bg-accent text-white border border-accent p-2.5 rounded-sm font-semibold cursor-pointer flex items-center justify-center gap-1 text-[0.75rem]'
+                              : 'bg-transparent text-text-primary border border-white/10 p-2.5 rounded-sm font-semibold cursor-pointer transition-all duration-300 flex items-center justify-center gap-1 text-[0.75rem] hover:bg-accent-light hover:border-accent hover:text-accent'
                           }
                           onClick={() => toggleSaveRestaurant(rest._id)}
                         >
                           <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-white' : ''}`} />
-                          <span>{isSaved ? 'Saved' : 'Save Spot'}</span>
+                          <span>{isSaved ? 'Saved' : 'Save'}</span>
                         </button>
                       </div>
                     </div>
@@ -546,6 +573,20 @@ export default function HomePage() {
         restaurantName={selectedAddDishRest?.name || ''}
         onClose={() => setSelectedAddDishRest(null)}
         onDishAdded={() => {
+          loadInitialData();
+        }}
+      />
+
+      {/* Community Ratings, Reviews & Comments Modal */}
+      <ReviewModal
+        isOpen={selectedReviewTarget !== null}
+        targetType={selectedReviewTarget?.type || 'restaurant'}
+        targetId={selectedReviewTarget?.id || ''}
+        targetName={selectedReviewTarget?.name || ''}
+        currentRating={selectedReviewTarget?.rating}
+        reviewCount={selectedReviewTarget?.reviewCount}
+        onClose={() => setSelectedReviewTarget(null)}
+        onReviewUpdated={() => {
           loadInitialData();
         }}
       />

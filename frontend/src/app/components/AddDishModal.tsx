@@ -221,7 +221,7 @@ export default function AddDishModal({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-3 bg-gradient-to-r from-accent to-rose-600 hover:from-accent-hover hover:to-rose-700 text-white text-sm font-bold rounded shadow-lg transition-all flex items-center justify-center gap-1.5"
+              className="flex-1 py-3 bg-gradient-to-r from-accent to-orange-600 hover:from-accent-hover hover:to-orange-700 text-white text-sm font-bold rounded shadow-lg transition-all flex items-center justify-center gap-1.5"
             >
               {loading ? (
                 <>

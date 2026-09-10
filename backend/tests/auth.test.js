@@ -5,6 +5,7 @@
 
 const request = require('supertest');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 const app = require('../src/app');
 const User = require('../src/models/User');
 const Otp = require('../src/models/Otp');
@@ -224,6 +225,24 @@ describe('Authentication API Integration Tests', () => {
         .send({ trailId: new mongoose.Types.ObjectId().toString() });
 
       expect(res.statusCode).toBe(401);
+    });
+
+    test('should reject expired session token (after 1 hour) with descriptive 401 message', async () => {
+      const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
+      const expiredToken = jwt.sign({ userId: registeredUser._id }, JWT_SECRET, { expiresIn: '0s' });
+
+      const res = await request(app)
+        .get('/api/auth/profile')
+        .set('Authorization', `Bearer ${expiredToken}`);
+
+      expect(res.statusCode).toBe(401);
+      expect(res.body.error.message).toContain('Session expired after 1 hour');
+    });
+
+    test('should clear authentication cookie on logout', async () => {
+      const res = await request(app).post('/api/auth/logout');
+      expect(res.statusCode).toBe(200);
+      expect(res.body.message).toBe('Logged out successfully');
     });
   });
 });

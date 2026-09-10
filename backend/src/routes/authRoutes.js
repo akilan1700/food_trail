@@ -105,15 +105,15 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ error: { message: 'Invalid email or MPIN' } });
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    // Generate JWT token (1 hour session expiration)
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
 
-    // Set secure HttpOnly cookie
+    // Set secure HttpOnly cookie (auto-destroys after 1 hour)
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (matching token expiry)
+      maxAge: 60 * 60 * 1000, // 1 hour (matching token expiry)
     });
 
     let userProfile = await UserProfile.findOne({ userId: user._id });
@@ -125,6 +125,7 @@ router.post('/login', async (req, res, next) => {
     const formattedUser = await formatUserResponse(user, userProfile);
     res.status(200).json({
       token,
+      expiresIn: 3600,
       user: formattedUser,
     });
   } catch (error) {
@@ -213,20 +214,21 @@ router.post('/verify', async (req, res, next) => {
     // Delete used OTP
     await Otp.deleteMany({ email: trimmedEmail });
 
-    // Generate JWT
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    // Generate JWT (1 hour session expiration)
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
 
-    // Set secure HttpOnly cookie
+    // Set secure HttpOnly cookie (auto-destroys after 1 hour)
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (matching token expiry)
+      maxAge: 60 * 60 * 1000, // 1 hour (matching token expiry)
     });
 
     const formattedUser = await formatUserResponse(user, userProfile);
     res.status(200).json({
       token,
+      expiresIn: 3600,
       user: formattedUser,
     });
   } catch (error) {

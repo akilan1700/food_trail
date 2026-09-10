@@ -49,7 +49,7 @@ router.post('/login', async (req, res, next) => {
     admin.lastLogin = new Date();
     await admin.save();
 
-    // Sign admin token
+    // Sign admin token (1 hour session expiration)
     const token = jwt.sign(
       {
         adminId: admin._id,
@@ -58,19 +58,20 @@ router.post('/login', async (req, res, next) => {
         name: admin.name,
       },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '1h' }
     );
 
-    // Set secure cookie
+    // Set secure cookie (auto-destroys after 1 hour)
     res.cookie('admin_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 60 * 60 * 1000, // 1 hour
     });
 
     res.status(200).json({
       token,
+      expiresIn: 3600,
       admin: {
         id: admin._id,
         email: admin.email,
@@ -217,7 +218,7 @@ router.post('/restaurants', adminMiddleware, async (req, res, next) => {
       vibeTags: Array.isArray(vibeTags) ? vibeTags : [],
       photoUrl: photoUrl || '',
       busyStatus: busyStatus || 'Plenty of Tables',
-      rating: rating ? Number(rating) : 4.5,
+      rating: rating ? Number(rating) : 0,
     });
 
     await restaurant.save();
@@ -358,7 +359,7 @@ router.post('/dishes', adminMiddleware, async (req, res, next) => {
       photoUrl: photoUrl || '',
       restaurantId,
       isSignature: isSignature !== undefined ? !!isSignature : true, // default true for admin additions
-      rating: rating ? Number(rating) : 4.8,
+      rating: rating ? Number(rating) : 0,
     });
 
     await dish.save();

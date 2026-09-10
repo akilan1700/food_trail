@@ -78,7 +78,7 @@ export default function Logo({
         />
       ) : (
         /* Fallback glowing vector mark if custom file is missing or invalid */
-        <div className="w-full h-full rounded-xl bg-gradient-to-tr from-accent-hover via-accent to-rose-400 p-[2px] shadow-lg shadow-accent/20">
+        <div className="w-full h-full rounded-xl bg-gradient-to-tr from-[#f18024] via-[#f6e132] to-[#348f91] p-[2px] shadow-lg shadow-accent/20">
           <div className="w-full h-full bg-bg-primary rounded-[10px] flex items-center justify-center">
             <span className="text-accent font-black text-xs leading-none">FT</span>
           </div>

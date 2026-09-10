@@ -75,6 +75,17 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
  */
 async function adminFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
+  
+  // Check 1-hour session expiry
+  if (typeof window !== 'undefined') {
+    const expiryStr = localStorage.getItem('foodtrail_admin_expires_at');
+    if (expiryStr && Date.now() >= Number(expiryStr)) {
+      localStorage.removeItem('foodtrail_admin_jwt');
+      localStorage.removeItem('foodtrail_admin_user');
+      localStorage.removeItem('foodtrail_admin_expires_at');
+    }
+  }
+
   const headers = new Headers(options?.headers);
 
   if (typeof window !== 'undefined') {
@@ -89,6 +100,12 @@ async function adminFetch<T>(endpoint: string, options?: RequestInit): Promise<T
     credentials: options?.credentials || 'include',
     headers,
   });
+
+  if (response.status === 401 && typeof window !== 'undefined') {
+    localStorage.removeItem('foodtrail_admin_jwt');
+    localStorage.removeItem('foodtrail_admin_user');
+    localStorage.removeItem('foodtrail_admin_expires_at');
+  }
 
   if (!response.ok) {
     let errorMessage = `API error: ${response.status} ${response.statusText}`;

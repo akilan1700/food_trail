@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 // File: src/app/trails/page.tsx
-// Description: Interactive walking trails page connecting food spots, allowing users to save full routes and simulate live busy updates.
+// Description: Interactive walking trails page connecting food spots, allowing users to save full routes and explore curated culinary trails.
 // Author: Akilan M
 // Created: 2026-08-11T17:42:55+05:30
 
@@ -9,7 +9,7 @@
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 
-import { Trail, getTrails, getTrailDetails, updateBusyStatus, formatPhotoUrl, getGoogleMapsUrl } from '../services/api';
+import { Trail, getTrails, getTrailDetails, formatPhotoUrl, getGoogleMapsUrl } from '../services/api';
 import { Footprints, Route, Compass, Bookmark, MapPin } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { addRestaurants, setSavedTrailId } from '../services/tripSlice';
@@ -75,28 +75,6 @@ export default function TrailsPage() {
     alert(`Added all ${selectedTrail.stops.length} places from "${selectedTrail.name}" to your Trip list!`);
   };
 
-  // Simulate updating live busy status of a restaurant
-  const handleUpdateBusyStatus = async (restaurantId: string, newStatus: string) => {
-    try {
-      await updateBusyStatus(restaurantId, newStatus);
-      // Refresh details to show updated status
-      if (selectedTrail) {
-        fetchTrailDetails(selectedTrail._id);
-      }
-    } catch (error) {
-      console.error('Failed to update simulated busy status:', error);
-    }
-  };
-
-  const getStatusDotClass = (status: string) => {
-    switch (status) {
-      case 'Plenty of Tables': return 'status-dot-green';
-      case 'Filling Up': return 'status-dot-orange';
-      case '~15 Min Wait': return 'status-dot-red';
-      default: return 'status-dot-red';
-    }
-  };
-
   return (
     <div className="max-w-[900px] mx-auto animate-fade-in">
       <section className="text-center my-8 md:my-12">
@@ -105,7 +83,7 @@ export default function TrailsPage() {
         <Link href="/trails/create">
           <button
             type="button"
-            className="bg-accent text-white border border-accent rounded-sm px-5 py-3 font-semibold cursor-pointer transition-all duration-300 hover:bg-accent-hover shadow-[0_4px_12px_rgba(244,63,94,0.2)]"
+            className="bg-accent text-white border border-accent rounded-sm px-5 py-3 font-semibold cursor-pointer transition-all duration-300 hover:bg-accent-hover shadow-[0_4px_12px_rgba(241,128,36,0.2)]"
           >
             Create Custom Walking Trail
           </button>
@@ -136,7 +114,7 @@ export default function TrailsPage() {
                       className="w-full h-full object-cover"
                     />
                     <span className="absolute bottom-4 left-4 bg-bg-primary/85 backdrop-blur-sm px-2.5 py-1 rounded-sm text-[0.75rem] font-semibold border border-white/8">{trail.area}</span>
-                    <span className="absolute top-4 right-4 bg-accent text-white px-2.5 py-1 rounded-sm text-[0.75rem] font-bold shadow-[0_4px_8px_rgba(244,63,94,0.3)] flex items-center gap-1">
+                    <span className="absolute top-4 right-4 bg-accent text-white px-2.5 py-1 rounded-sm text-[0.75rem] font-bold shadow-[0_4px_8px_rgba(241,128,36,0.3)] flex items-center gap-1">
                       <Footprints className="w-3.5 h-3.5 shrink-0" />
                       <span>{trail.estimatedDuration} Min Walk</span>
                     </span>
@@ -199,12 +177,6 @@ export default function TrailsPage() {
                                   <span className="text-[0.75rem] font-bold uppercase text-accent tracking-wider">Stop {stop.order}</span>
                                   <h4 className="text-[1.15rem] font-bold text-text-primary">{rest.name}</h4>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                  <div className="status-dot-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem' }}>
-                                    <span className={`status-dot ${getStatusDotClass(rest.busyStatus)}`}></span>
-                                    <span style={{ fontWeight: 600 }}>{rest.busyStatus}</span>
-                                  </div>
-                                </div>
                               </div>
 
                               <p className="text-sm text-text-secondary mb-4 leading-relaxed">{stop.description}</p>
@@ -220,20 +192,6 @@ export default function TrailsPage() {
                                   <MapPin className="w-3.5 h-3.5 text-text-muted group-hover/pin:text-accent shrink-0 transition-colors" />
                                   <span className="hover:underline decoration-dotted underline-offset-2">{rest.area || rest.address || 'Location'}</span>
                                 </a>
-
-                                <div className="flex items-center gap-2 text-[0.8rem]">
-                                  <span className="text-text-muted">Simulate Status:</span>
-                                  <select
-                                    className="bg-bg-tertiary text-text-primary border border-white/10 rounded px-2 py-1 text-[0.8rem] outline-none cursor-pointer"
-                                    value={rest.busyStatus}
-                                    onChange={(e) => handleUpdateBusyStatus(rest._id, e.target.value)}
-                                  >
-                                    <option value="Plenty of Tables">Plenty of Tables</option>
-                                    <option value="Filling Up">Filling Up</option>
-                                    <option value="~15 Min Wait">~15 Min Wait</option>
-                                    <option value="Closed">Closed</option>
-                                  </select>
-                                </div>
                               </div>
                             </div>
                           );

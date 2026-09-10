@@ -18,6 +18,7 @@ export interface Restaurant {
   vibeTags: string[];
   busyStatus: 'Plenty of Tables' | 'Filling Up' | '~15 Min Wait' | 'Closed';
   rating: number;
+  reviewCount?: number;
   photoUrl?: string;
 }
 
@@ -50,7 +51,23 @@ export interface Dish {
   photoUrl?: string;
   restaurantId: Restaurant;
   rating: number;
+  reviewCount?: number;
   isSignature?: boolean;
+}
+
+export interface Review {
+  _id: string;
+  user: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  restaurantId?: string;
+  dishId?: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Stop {
@@ -88,6 +105,17 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
   
+  // Auto-destroy local session if past 1 hour expiry
+  if (typeof window !== 'undefined') {
+    const expiryStr = localStorage.getItem('foodtrail_session_expires_at');
+    if (expiryStr && Date.now() >= Number(expiryStr)) {
+      localStorage.removeItem('foodtrail_user');
+      localStorage.removeItem('foodtrail_token');
+      localStorage.removeItem('foodtrail_session_expires_at');
+      window.dispatchEvent(new CustomEvent('foodtrail_session_expired'));
+    }
+  }
+
   const headers = new Headers(options?.headers);
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('foodtrail_token');
@@ -101,6 +129,14 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
     credentials: options?.credentials || 'include',
     headers,
   });
+
+  // Automatically destroy local session if server returns 401 Unauthorized
+  if (response.status === 401 && typeof window !== 'undefined') {
+    localStorage.removeItem('foodtrail_user');
+    localStorage.removeItem('foodtrail_token');
+    localStorage.removeItem('foodtrail_session_expires_at');
+    window.dispatchEvent(new CustomEvent('foodtrail_session_expired'));
+  }
 
   if (!response.ok) {
     let errorMessage = `API error: ${response.status} ${response.statusText}`;
@@ -430,3 +466,44 @@ export async function logoutUser(): Promise<{ message: string }> {
     credentials: 'include',
   });
 }
+
+/**
+ * Fetch all user reviews and comments for a specific restaurant or dish.
+ * @param params - Target query filter containing restaurantId or dishId.
+ */
+export async function getReviews(params: { restaurantId?: string; dishId?: string }): Promise<Review[]> {
+  const query = new URLSearchParams();
+  if (params.restaurantId) query.append('restaurantId', params.restaurantId);
+  if (params.dishId) query.append('dishId', params.dishId);
+  return apiRequest<Review[]>(`/reviews?${query.toString()}`);
+}
+
+/**
+ * Submit a user rating and review comment for a dining spot or dish.
+ * @param data - Review payload containing target, rating, and comment.
+ */
+export async function createReview(data: {
+  restaurantId?: string;
+  dishId?: string;
+  rating: number;
+  comment: string;
+}): Promise<Review> {
+  return apiRequest<Review>('/reviews', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Delete a user's own review by ID.
+ * @param reviewId - The ID of the review to delete.
+ */
+export async function deleteReview(reviewId: string): Promise<{ success: boolean; message: string }> {
+  return apiRequest<{ success: boolean; message: string }>(`/reviews/${reviewId}`, {
+    method: 'DELETE',
+  });
+}
+

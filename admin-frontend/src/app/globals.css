@@ -8,11 +8,12 @@
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
-    --accent: #f43f5e;
-    --accent-hover: #e11d48;
-    --admin-gold: #f59e0b;
+    --accent: #f18024;
+    --accent-hover: #d96b14;
+    --admin-gold: #f6e132;
+    --admin-teal: #348f91;
     --status-green: #10b981;
-    --status-orange: #f97316;
+    --status-orange: #f18024;
     --status-red: #ef4444;
   }
 
@@ -40,7 +41,7 @@
 }
 
 .glass-card:hover {
-  border-color: rgba(244, 63, 94, 0.3);
+  border-color: rgba(241, 128, 36, 0.35);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
 }
 

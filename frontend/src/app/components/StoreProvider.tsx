@@ -10,7 +10,7 @@ import { store } from '../services/store';
 import { useEffect } from 'react';
 import { loadTripFromStorage } from '../services/tripSlice';
 import { fetchProfile } from '../services/api';
-import { setCredentials, clearCredentials, selectCurrentUser } from '../services/authSlice';
+import { setCredentials, clearCredentials, checkSessionExpiry, selectCurrentUser } from '../services/authSlice';
 
 function ThemeToggler() {
   const user = useSelector(selectCurrentUser);
@@ -34,17 +34,45 @@ export default function StoreProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     store.dispatch(loadTripFromStorage());
 
-    // Validate current user session from the cookie on mount
+    // 1. Initial 1-hour session expiration check from local storage
+    store.dispatch(checkSessionExpiry());
+
+    // 2. Validate current user session from the cookie on mount
     fetchProfile()
       .then((data) => {
         if (data && data.user) {
-          store.dispatch(setCredentials({ user: data.user, token: '' }));
+          store.dispatch(setCredentials({ user: data.user }));
         }
       })
       .catch((err) => {
         console.warn('Session verification failed or expired:', err.message);
         store.dispatch(clearCredentials());
       });
+
+    // 3. Listen to global session expired events
+    const handleSessionExpired = () => {
+      store.dispatch(clearCredentials());
+    };
+    window.addEventListener('foodtrail_session_expired', handleSessionExpired);
+
+    // 4. Check on tab visibility / focus
+    const handleFocusOrVisibility = () => {
+      store.dispatch(checkSessionExpiry());
+    };
+    window.addEventListener('focus', handleFocusOrVisibility);
+    document.addEventListener('visibilitychange', handleFocusOrVisibility);
+
+    // 5. Periodic 1-hour session watchdog check (runs every 10 seconds)
+    const watchdogInterval = setInterval(() => {
+      store.dispatch(checkSessionExpiry());
+    }, 10000);
+
+    return () => {
+      window.removeEventListener('foodtrail_session_expired', handleSessionExpired);
+      window.removeEventListener('focus', handleFocusOrVisibility);
+      document.removeEventListener('visibilitychange', handleFocusOrVisibility);
+      clearInterval(watchdogInterval);
+    };
   }, []);
 
   return (

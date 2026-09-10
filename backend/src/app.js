@@ -15,12 +15,24 @@ const trailRoutes = require('./routes/trailRoutes');
 const tripRoutes = require('./routes/tripRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  process.env.ADMIN_FRONTEND_URL || 'http://localhost:3001',
+];
+
 // Standard middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Blocked by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());
@@ -37,6 +49,7 @@ app.use('/api/trails', trailRoutes);
 app.use('/api/trips', tripRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

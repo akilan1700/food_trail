@@ -43,7 +43,11 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
   const handleModeSwitch = (newMode: 'login' | 'signup') => {
     setMode(newMode);
     setError(null);
+    setEmail('');
+    setName('');
     setMpin('');
+    setOtpCode('');
+    setOtpStep(false);
     router.push(newMode === 'login' ? '/login' : '/signup');
   };
 
@@ -81,7 +85,10 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
         setOtpStep(true);
       } else if (data.token && data.user) {
         dispatch(setCredentials({ user: data.user, token: data.token }));
+        setEmail('');
+        setName('');
         setMpin('');
+        setError(null);
         if (onSuccess) {
           onSuccess();
         }
@@ -111,9 +118,12 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
       dispatch(setCredentials({ user: data.user, token: data.token }));
       
       // Clear state
+      setEmail('');
+      setName('');
       setMpin('');
       setOtpCode('');
       setOtpStep(false);
+      setError(null);
       
       if (onSuccess) {
         onSuccess();

@@ -22,7 +22,7 @@ const restaurantSchema = new mongoose.Schema({
   area: {
     type: String,
     required: true,
-    enum: ['White Town', 'Auroville Road', 'Heritage Town', 'Others'],
+    trim: true,
   },
   location: {
     type: {

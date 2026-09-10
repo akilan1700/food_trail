@@ -3,10 +3,11 @@
 // Author: Akilan M
 // Created: 2026-08-11T17:40:34+05:30
 
-const CACHE_NAME = 'foodtrail-cache-v1';
+const CACHE_NAME = 'foodtrail-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
+  '/logo.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];

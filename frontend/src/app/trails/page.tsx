@@ -9,7 +9,7 @@
 import { useState, useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 
-import { Trail, getTrails, getTrailDetails, updateBusyStatus, formatPhotoUrl } from '../services/api';
+import { Trail, getTrails, getTrailDetails, updateBusyStatus, formatPhotoUrl, getGoogleMapsUrl } from '../services/api';
 import { Footprints, Route, Compass, Bookmark, MapPin } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { addRestaurants, setSavedTrailId } from '../services/tripSlice';
@@ -130,13 +130,11 @@ export default function TrailsPage() {
                   style={isActive ? { borderColor: 'var(--color-accent)' } : {}}
                 >
                   <div className="h-[180px] relative bg-bg-tertiary">
-                    {trail.photoUrl && (
-                      <img
-                        src={formatPhotoUrl(trail.photoUrl)}
-                        alt={trail.name}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
+                    <img
+                      src={formatPhotoUrl(trail.photoUrl)}
+                      alt={trail.name}
+                      className="w-full h-full object-cover"
+                    />
                     <span className="absolute bottom-4 left-4 bg-bg-primary/85 backdrop-blur-sm px-2.5 py-1 rounded-sm text-[0.75rem] font-semibold border border-white/8">{trail.area}</span>
                     <span className="absolute top-4 right-4 bg-accent text-white px-2.5 py-1 rounded-sm text-[0.75rem] font-bold shadow-[0_4px_8px_rgba(244,63,94,0.3)] flex items-center gap-1">
                       <Footprints className="w-3.5 h-3.5 shrink-0" />
@@ -212,10 +210,16 @@ export default function TrailsPage() {
                               <p className="text-sm text-text-secondary mb-4 leading-relaxed">{stop.description}</p>
 
                               <div className="flex justify-between items-center border-t border-white/5 pt-3 flex-wrap gap-2">
-                                <span className="flex items-center gap-1 text-[0.8rem] text-text-secondary">
-                                  <MapPin className="w-3.5 h-3.5 text-text-muted shrink-0" />
-                                  <span>{rest.address}</span>
-                                </span>
+                                <a
+                                  href={getGoogleMapsUrl(rest)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-[0.8rem] text-text-secondary hover:text-accent transition-colors duration-200 group/pin"
+                                  title={`View ${rest.name} on Google Maps`}
+                                >
+                                  <MapPin className="w-3.5 h-3.5 text-text-muted group-hover/pin:text-accent shrink-0 transition-colors" />
+                                  <span className="hover:underline decoration-dotted underline-offset-2">{rest.area || rest.address || 'Location'}</span>
+                                </a>
 
                                 <div className="flex items-center gap-2 text-[0.8rem]">
                                   <span className="text-text-muted">Simulate Status:</span>

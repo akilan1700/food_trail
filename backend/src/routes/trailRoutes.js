@@ -54,17 +54,9 @@ router.post('/', async (req, res, next) => {
     const { name, description, estimatedDuration, distance, area, photoUrl, stops } = req.body;
 
     // Validate required fields
-    if (!name || !estimatedDuration || !distance || !area) {
+    if (!name || !estimatedDuration || !distance || !area || typeof area !== 'string' || !area.trim()) {
       return res.status(400).json({
         error: { message: 'Fields name, estimatedDuration, distance, and area are required.' },
-      });
-    }
-
-    // Validate area enum
-    const validAreas = ['White Town', 'Auroville Road', 'Heritage Town', 'Others'];
-    if (!validAreas.includes(area)) {
-      return res.status(400).json({
-        error: { message: `Invalid area. Must be one of: ${validAreas.join(', ')}` },
       });
     }
 

@@ -10,7 +10,7 @@ const Restaurant = require('../models/Restaurant');
 
 /**
  * @route   GET /api/dishes/search
- * @desc    Search for dishes and filter by restaurant vibes, returning top 3 matches
+ * @desc    Search for dishes and filter by restaurant vibes
  * @access  Public
  */
 router.get('/search', async (req, res, next) => {
@@ -19,10 +19,19 @@ router.get('/search', async (req, res, next) => {
 
     let query = {};
     if (q) {
-      // Case-insensitive regex match on dish name or description
+      // Find restaurants matching name or area to include their dishes in search
+      const matchingRestaurants = await Restaurant.find({
+        $or: [
+          { name: { $regex: q, $options: 'i' } },
+          { area: { $regex: q, $options: 'i' } },
+        ],
+      }).select('_id');
+      const matchedRestIds = matchingRestaurants.map((r) => r._id);
+
       query.$or = [
         { name: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
+        { restaurantId: { $in: matchedRestIds } },
       ];
     }
 
@@ -31,22 +40,18 @@ router.get('/search', async (req, res, next) => {
 
     // Filter by restaurant vibe tags if provided
     if (vibe) {
-      const vibeFilters = vibe.split(',').map(v => v.trim().toLowerCase());
+      const vibeFilters = vibe.split(',').map((v) => v.trim().toLowerCase());
       dishes = dishes.filter((dish) => {
         if (!dish.restaurantId) return false;
-        const restVibes = dish.restaurantId.vibeTags.map(v => v.toLowerCase());
-        // Verify that every filtered vibe is present in the restaurant's vibe tags
-        return vibeFilters.every(f => restVibes.includes(f));
+        const restVibes = dish.restaurantId.vibeTags.map((v) => v.toLowerCase());
+        return vibeFilters.every((f) => restVibes.includes(f));
       });
     }
 
-    // Sort dishes by rating in descending order to get the "best spots"
+    // Sort dishes by rating in descending order
     dishes.sort((a, b) => b.rating - a.rating);
 
-    // Limit to the top 3 matches
-    const top3Dishes = dishes.slice(0, 3);
-
-    res.json(top3Dishes);
+    res.json(dishes);
   } catch (error) {
     next(error);
   }

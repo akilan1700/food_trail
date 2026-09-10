@@ -6,6 +6,7 @@
 'use client';
 
 import AuthForm from '../components/AuthForm';
+import Logo from '../components/Logo';
 import { useAppSelector } from '../services/hooks';
 import { selectCurrentUser } from '../services/authSlice';
 import { useRouter } from 'next/navigation';
@@ -28,7 +29,8 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-[70vh] flex flex-col justify-center items-center py-10 animate-fade-in text-center">
-      <div className="text-center mb-8 max-w-[400px]">
+      <div className="text-center mb-8 max-w-[400px] flex flex-col items-center">
+        <Logo size="md" href="/" className="mb-4" />
         <h1 className="text-3xl font-extrabold text-text-primary mb-2">Create Account</h1>
         <p className="text-text-secondary text-sm">
           Join FoodTrail to save your favorite walking food routes and discover hidden cafes.

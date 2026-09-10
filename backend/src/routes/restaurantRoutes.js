@@ -10,17 +10,28 @@ const Dish = require('../models/Dish');
 
 /**
  * @route   GET /api/restaurants
- * @desc    Get all restaurants, with optional area filtering
+ * @desc    Get all restaurants, with optional search, vibe, and area filtering
  * @access  Public
  */
 router.get('/', async (req, res, next) => {
   try {
-    const { area } = req.query;
+    const { area, q, vibe } = req.query;
     let query = {};
     if (area) {
-      query.area = area;
+      query.area = { $regex: new RegExp(`^${area}$`, 'i') };
     }
-    const restaurants = await Restaurant.find(query);
+    if (q) {
+      query.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+        { area: { $regex: q, $options: 'i' } },
+      ];
+    }
+    if (vibe) {
+      const vibes = vibe.split(',').map((v) => v.trim());
+      query.vibeTags = { $all: vibes };
+    }
+    const restaurants = await Restaurant.find(query).sort({ rating: -1, _id: -1 });
     res.json(restaurants);
   } catch (error) {
     next(error);
@@ -82,7 +93,7 @@ router.patch('/:id/busy-status', async (req, res, next) => {
 
 /**
  * @route   PATCH /api/restaurants/:id/photo
- * @desc    Update a restaurant's photo URL (Google Drive File ID)
+ * @desc    Update a restaurant's photo URL
  * @access  Public
  */
 router.patch('/:id/photo', async (req, res, next) => {
@@ -122,10 +133,9 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: { message: 'Restaurant name is required' } });
     }
 
-    const validAreas = ['White Town', 'Auroville Road', 'Heritage Town', 'Others'];
-    if (!area || !validAreas.includes(area)) {
+    if (!area || typeof area !== 'string' || !area.trim()) {
       return res.status(400).json({
-        error: { message: `Area is required and must be one of: ${validAreas.join(', ')}` },
+        error: { message: 'Area is required' },
       });
     }
 

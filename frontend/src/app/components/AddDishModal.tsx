@@ -35,9 +35,34 @@ export default function AddDishModal({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  /**
+   * Resets all internal form fields to their initial empty state.
+   */
+  const resetForm = (): void => {
+    setName('');
+    setDescription('');
+    setPrice('');
+    setIsSignature(false);
+    setPhotoUrl('');
+    setErrorMsg('');
+    setSuccessMsg('');
+  };
+
+  /**
+   * Closes the modal after resetting all form fields.
+   */
+  const handleClose = (): void => {
+    resetForm();
+    onClose();
+  };
+
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: FormEvent) => {
+  /**
+   * Handles dish creation and resets the modal form upon completion.
+   * @param e - Form submit event.
+   */
+  const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -56,27 +81,17 @@ export default function AddDishModal({
     setLoading(true);
     try {
       await createDish({
-        name,
-        description,
+        name: name.trim(),
+        description: description.trim() || undefined,
         price: dishPrice,
         photoUrl: photoUrl || undefined,
         restaurantId,
         isSignature,
       });
 
-      setSuccessMsg('Dish added successfully!');
+      resetForm();
       onDishAdded();
-      
-      // Clear inputs and close after a short delay
-      setTimeout(() => {
-        setName('');
-        setDescription('');
-        setPrice('');
-        setIsSignature(false);
-        setPhotoUrl('');
-        setSuccessMsg('');
-        onClose();
-      }, 1000);
+      onClose();
     } catch (err) {
       console.error('Failed to add dish:', err);
       const message = err instanceof Error ? err.message : 'Error adding dish. Please try again.';
@@ -96,7 +111,7 @@ export default function AddDishModal({
             <p className="text-xs text-text-secondary">Adding signature menu item to {restaurantName}</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-white/5 transition-all"
           >
             <X className="w-5 h-5" />
@@ -173,7 +188,10 @@ export default function AddDishModal({
           {/* Photo Upload */}
           <div>
             <PhotoUpload
+              value={photoUrl}
+              folder="dishes"
               onUploadSuccess={(fileId) => setPhotoUrl(fileId)}
+              onClear={() => setPhotoUrl('')}
               label="Upload Dish Photo"
             />
           </div>
@@ -194,7 +212,7 @@ export default function AddDishModal({
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={loading}
               className="flex-1 py-3 bg-bg-tertiary/40 border border-white/8 rounded text-sm font-bold text-text-primary hover:bg-bg-tertiary transition-all"
             >

@@ -8,13 +8,38 @@ import { User, UserSettings, UserProfileDetails } from './authSlice';
 export interface Restaurant {
   _id: string;
   name: string;
-  description: string;
-  address: string;
+  description?: string;
+  address?: string;
   area: string;
+  location?: {
+    type?: string;
+    coordinates: number[]; // [longitude, latitude]
+  };
   vibeTags: string[];
   busyStatus: 'Plenty of Tables' | 'Filling Up' | '~15 Min Wait' | 'Closed';
   rating: number;
   photoUrl?: string;
+}
+
+/**
+ * Constructs a Google Maps redirection URL for a restaurant or dining spot.
+ * Prioritizes exact coordinates [lng, lat] and falls back to spot name and area query.
+ * @param rest - Object containing name, optional area, and optional location coordinates.
+ * @returns Google Maps URL.
+ */
+export function getGoogleMapsUrl(rest: {
+  name: string;
+  area?: string;
+  location?: { coordinates?: number[] };
+}): string {
+  if (rest.location?.coordinates && Array.isArray(rest.location.coordinates) && rest.location.coordinates.length === 2) {
+    const [lng, lat] = rest.location.coordinates;
+    if (!isNaN(lat) && !isNaN(lng)) {
+      return `https://www.google.com/maps?q=${lat},${lng}`;
+    }
+  }
+  const query = encodeURIComponent(`${rest.name} ${rest.area || ''}`.trim());
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
 }
 
 export interface Dish {
@@ -166,8 +191,7 @@ export async function getSharedTrip(id: string): Promise<SavedTrip> {
 }
 
 /**
- * Formats a given photo URL. If it is a Google Drive file ID,
- * it returns the direct content download URL. Otherwise, returns the original URL.
+ * Formats a given photo URL or path into a fully qualified image URL.
  */
 export function formatPhotoUrl(url: string | undefined): string {
   if (!url) return 'https://images.unsplash.com/photo-1498804103079-a6351b050096?w=600'; // Default fallback
@@ -182,27 +206,72 @@ export function formatPhotoUrl(url: string | undefined): string {
 }
 
 /**
- * Uploads an image file to the Express backend (which uploads to Google Drive).
+ * Uploads an image file to the Express backend (organized in a user-specific folder structure).
+ * @param file - Image file to upload.
+ * @param folder - Optional subfolder category (e.g. 'spots', 'dishes', 'trails').
  */
-export async function uploadImage(file: File): Promise<{ success: boolean; fileId: string }> {
+export async function uploadImage(file: File, folder?: string): Promise<{ success: boolean; fileId: string; folder?: string }> {
   const formData = new FormData();
   formData.append('photo', file);
+  if (folder) {
+    formData.append('folder', folder);
+  }
 
   const url = `${API_BASE}/upload`;
   const response = await fetch(url, {
     method: 'POST',
+    credentials: 'include',
     body: formData,
   });
 
   if (!response.ok) {
-    throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+    let errorDetail = `${response.status} ${response.statusText}`;
+    try {
+      const errJson = await response.json();
+      if (errJson?.error?.message) {
+        errorDetail = errJson.error.message;
+      }
+    } catch {
+      // Ignore JSON parse failure
+    }
+    throw new Error(`Upload failed: ${errorDetail}`);
   }
 
-  return response.json() as Promise<{ success: boolean; fileId: string }>;
+  return response.json() as Promise<{ success: boolean; fileId: string; folder?: string }>;
 }
 
 /**
- * Update a restaurant's photo URL (Google Drive File ID).
+ * Deletes an uploaded image from Cloudinary.
+ * @param photoUrl - The URL or public_id of the photo to delete.
+ */
+export async function deleteUploadedImage(photoUrl: string): Promise<{ success: boolean; message: string }> {
+  const url = `${API_BASE}/upload`;
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ photoUrl }),
+  });
+
+  if (!response.ok) {
+    let errorDetail = `${response.status} ${response.statusText}`;
+    try {
+      const errJson = await response.json();
+      if (errJson?.error?.message) {
+        errorDetail = errJson.error.message;
+      }
+    } catch {
+      // Ignore JSON parse failure
+    }
+    throw new Error(`Delete failed: ${errorDetail}`);
+  }
+
+  return response.json() as Promise<{ success: boolean; message: string }>;
+}
+
+/**
+ * Update a restaurant's photo URL.
  */
 export async function updateRestaurantPhoto(id: string, photoUrl: string): Promise<Restaurant> {
   return apiRequest<Restaurant>(`/restaurants/${id}/photo`, {

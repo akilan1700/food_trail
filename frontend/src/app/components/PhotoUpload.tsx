@@ -1,24 +1,67 @@
 /* eslint-disable @next/next/no-img-element */
 // File: src/app/components/PhotoUpload.tsx
-// Description: Reusable React component for uploading images to the backend and returning the Google Drive File ID.
+// Description: Reusable React component for uploading image assets to the backend.
 // Author: Akilan M
 // Created: 2026-08-12T14:38:00+05:30
 
 'use client';
 
-import { useState, ChangeEvent } from 'react';
-import { uploadImage } from '../services/api';
-import { Camera, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
+import { uploadImage, deleteUploadedImage, formatPhotoUrl } from '../services/api';
+import { Camera, AlertCircle, X, Loader2 } from 'lucide-react';
 
 interface PhotoUploadProps {
   onUploadSuccess: (fileId: string) => void;
   label?: string;
+  value?: string;
+  folder?: string;
+  onClear?: () => void;
 }
 
-export default function PhotoUpload({ onUploadSuccess, label = 'Upload Photo' }: PhotoUploadProps) {
+export default function PhotoUpload({ onUploadSuccess, label = 'Upload Photo', value, folder, onClear }: PhotoUploadProps) {
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(value ? formatPhotoUrl(value) : null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync / reset preview when parent value changes or is cleared
+  useEffect(() => {
+    if (!value) {
+      setPreviewUrl(null);
+      setErrorMsg('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } else {
+      setPreviewUrl(formatPhotoUrl(value));
+    }
+  }, [value]);
+
+  /**
+   * Handles deleting/clearing the selected image and removes it from Cloudinary.
+   */
+  const handleRemovePhoto = async (e: React.MouseEvent): Promise<void> => {
+    e.stopPropagation();
+    const currentPhoto = value;
+    if (onClear) {
+      onClear();
+    }
+    setPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    if (currentPhoto && currentPhoto.includes('cloudinary.com')) {
+      setDeleting(true);
+      try {
+        await deleteUploadedImage(currentPhoto);
+      } catch (err) {
+        console.warn('Failed to delete image from Cloudinary:', err);
+      } finally {
+        setDeleting(false);
+      }
+    }
+  };
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -37,7 +80,7 @@ export default function PhotoUpload({ onUploadSuccess, label = 'Upload Photo' }:
     setUploading(true);
     setErrorMsg('');
     try {
-      const response = await uploadImage(file);
+      const response = await uploadImage(file, folder);
       if (response.success && response.fileId) {
         onUploadSuccess(response.fileId);
       } else {
@@ -63,6 +106,17 @@ export default function PhotoUpload({ onUploadSuccess, label = 'Upload Photo' }:
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300">
               <span className="text-xs text-white font-semibold">Change Photo</span>
             </div>
+            {onClear && (
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleRemovePhoto}
+                className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-black/70 hover:bg-red-600 text-white transition-colors disabled:opacity-50 cursor-pointer"
+                title="Delete photo"
+              >
+                {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+              </button>
+            )}
           </>
         ) : (
           <div className="flex flex-col items-center gap-2 text-text-secondary">
@@ -71,6 +125,7 @@ export default function PhotoUpload({ onUploadSuccess, label = 'Upload Photo' }:
           </div>
         )}
         <input
+          ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleFileChange}
@@ -82,7 +137,7 @@ export default function PhotoUpload({ onUploadSuccess, label = 'Upload Photo' }:
       {uploading && (
         <div className="flex items-center gap-2 justify-center text-xs text-accent">
           <span className="status-dot status-dot-green animate-status-pulse"></span>
-          <span>Uploading to Google Drive...</span>
+          <span>Uploading image...</span>
         </div>
       )}
 

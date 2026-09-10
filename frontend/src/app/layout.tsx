@@ -22,6 +22,17 @@ export const metadata: Metadata = {
   title: 'FoodTrail',
   description: 'Find top dishes & walkable food trails in your area.',
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/logo.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: ['/favicon.ico'],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

@@ -6,11 +6,13 @@
 require('dotenv').config();
 const app = require('./app');
 const connectDB = require('./config/db');
+const { seedAdminsFromConfig } = require('./services/adminSeedService');
 
 const PORT = process.env.PORT || 5001;
 
-// Connect database and run server
-connectDB().then(() => {
+// Connect database, seed admin accounts, and run server
+connectDB().then(async () => {
+  await seedAdminsFromConfig();
   app.listen(PORT, () => {
     console.log(`FoodTrail backend server running on port ${PORT}`);
   });

@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectSavedRestIds, selectSavedTrailId, setSavedTrailId, removeRestaurant, clearTrip } from '../services/tripSlice';
 import { selectCurrentUser, setCredentials, selectDetectedCity } from '../services/authSlice';
-import { Restaurant, Trail, getRestaurants, getTrailDetails, createSharedTrip, formatPhotoUrl, updateRestaurantPhoto, completeWalk } from '../services/api';
+import { Restaurant, Trail, getRestaurants, getTrailDetails, createSharedTrip, formatPhotoUrl, updateRestaurantPhoto, completeWalk, getGoogleMapsUrl } from '../services/api';
 import { Trash2, MessageCircle, MapPin, Star, Bookmark, Camera, PlusCircle, CheckCircle2 } from 'lucide-react';
 import PhotoUpload from '../components/PhotoUpload';
 import AddDishModal from '../components/AddDishModal';
@@ -266,13 +266,11 @@ export default function MyTripPage() {
                 <div key={rest._id} className="relative bg-bg-tertiary/30 border border-white/8 rounded-md flex gap-6 p-5 items-center flex-col sm:flex-row hover:border-white/15 glass-card">
                   <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-6 h-6 bg-bg-primary border-3 border-accent text-text-primary rounded-full flex items-center justify-center text-[0.75rem] font-extrabold z-10 shadow-[0_0_10px_rgba(244,63,94,0.2)]">{index + 1}</div>
                   
-                  {rest.photoUrl && (
-                    <img
-                      src={formatPhotoUrl(rest.photoUrl)}
-                      alt={rest.name}
-                      className="w-full sm:w-[100px] h-[140px] sm:h-[100px] object-cover rounded-sm shrink-0 bg-bg-tertiary"
-                    />
-                  )}
+                  <img
+                    src={formatPhotoUrl(rest.photoUrl)}
+                    alt={rest.name}
+                    className="w-full sm:w-[100px] h-[140px] sm:h-[100px] object-cover rounded-sm shrink-0 bg-bg-tertiary"
+                  />
 
                   <div className="flex-grow w-full">
                     <div className="flex justify-between items-start mb-1 gap-4">
@@ -306,10 +304,16 @@ export default function MyTripPage() {
                     </div>
 
                     <div className="flex gap-6 text-[0.85rem] text-text-secondary mb-2">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-text-muted shrink-0" />
-                        <span>{rest.area}</span>
-                      </div>
+                      <a
+                        href={getGoogleMapsUrl(rest)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 hover:text-accent transition-colors duration-200 group/pin"
+                        title={`View ${rest.name} on Google Maps`}
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-text-muted group-hover/pin:text-accent shrink-0 transition-colors" />
+                        <span className="hover:underline decoration-dotted underline-offset-2">{rest.area}</span>
+                      </a>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}>
                         <span className={`status-dot ${getStatusDotClass(rest.busyStatus)}`}></span>
                         <span>{rest.busyStatus}</span>

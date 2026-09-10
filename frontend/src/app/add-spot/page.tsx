@@ -1,25 +1,30 @@
 // File: src/app/add-spot/page.tsx
-// Description: User-facing page to add new dining spots (restaurants) with photos and coordinates.
+// Description: User-facing page to add new dining spots with background location pin capture and Google Maps integration.
 // Author: Akilan M
 // Created: 2026-08-12T17:46:00+05:30
 
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Navigation, Plus, X, ArrowLeft, Loader2 } from 'lucide-react';
+import { Navigation, Plus, X, ArrowLeft, Loader2, MapPin, ExternalLink, CheckCircle2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 import { createRestaurant } from '../services/api';
+import { useAppSelector } from '../services/hooks';
+import { selectDetectedCity, selectDetectedLatitude, selectDetectedLongitude } from '../services/authSlice';
 import PhotoUpload from '../components/PhotoUpload';
+import AddDishModal from '../components/AddDishModal';
 
 export default function AddSpotPage() {
   const router = useRouter();
+  const detectedCity = useAppSelector(selectDetectedCity);
+  const detectedLat = useAppSelector(selectDetectedLatitude);
+  const detectedLng = useAppSelector(selectDetectedLongitude);
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [address, setAddress] = useState('');
-  const [area, setArea] = useState('White Town');
+  const [area, setArea] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [vibeInput, setVibeInput] = useState('');
@@ -29,10 +34,32 @@ export default function AddSpotPage() {
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  const [isAddDishOpen, setIsAddDishOpen] = useState(false);
+  const [createdSpot, setCreatedSpot] = useState<{
+    id: string;
+    name: string;
+    area: string;
+    lat: number;
+    lng: number;
+  } | null>(null);
 
-  // Handle adding vibe tags
-  const addVibeTag = () => {
+  // Sync client-side detected location on mount to avoid SSR hydration mismatches
+  useEffect(() => {
+    if (detectedCity && !area) {
+      setArea(detectedCity);
+    }
+    if (detectedLat && !latitude) {
+      setLatitude(detectedLat.toFixed(6));
+    }
+    if (detectedLng && !longitude) {
+      setLongitude(detectedLng.toFixed(6));
+    }
+  }, [detectedCity, detectedLat, detectedLng, area, latitude, longitude]);
+
+  /**
+   * Adds a new vibe tag to the restaurant's vibe list.
+   */
+  const addVibeTag = (): void => {
     const trimmed = vibeInput.trim();
     if (trimmed && !vibeTags.includes(trimmed)) {
       setVibeTags([...vibeTags, trimmed]);
@@ -40,19 +67,26 @@ export default function AddSpotPage() {
     }
   };
 
-  // Remove vibe tag
-  const removeVibeTag = (tag: string) => {
+  /**
+   * Removes an existing vibe tag from the list.
+   * @param tag - Tag name to remove.
+   */
+  const removeVibeTag = (tag: string): void => {
     setVibeTags(vibeTags.filter((t) => t !== tag));
   };
 
-  // Use HTML5 Geolocation API to auto-fill latitude and longitude
-  const handleGetCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
+  /**
+   * Captures the current GPS location pin in the background via HTML5 Geolocation API.
+   * Optimized for PWA standalone execution and mobile browsers.
+   */
+  const handleGetCurrentLocation = (): void => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setErrorMsg('Geolocation is not supported by your browser.');
       return;
     }
 
     setLocationLoading(true);
+    setErrorMsg('');
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLatitude(position.coords.latitude.toFixed(6));
@@ -60,23 +94,38 @@ export default function AddSpotPage() {
         setLocationLoading(false);
       },
       (error) => {
-        console.error('Error getting location:', error);
-        alert(`Failed to retrieve your location: ${error.message}`);
+        console.error('Error getting location pin:', error);
+        let errorReason = error.message;
+        if (error.code === 1) {
+          errorReason = 'Location permission was denied. Please allow location access in your device settings.';
+        } else if (error.code === 2) {
+          errorReason = 'Location unavailable. Please check your GPS signal.';
+        } else if (error.code === 3) {
+          errorReason = 'Location request timed out. Please try again.';
+        }
+        setErrorMsg(`Failed to retrieve location pin: ${errorReason}`);
         setLocationLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
   };
 
-  // Handle submit form
-  const handleSubmit = async (e: FormEvent) => {
+  /**
+   * Handles form submission to validate inputs and publish the new dining spot.
+   * @param e - Form submit event.
+   */
+  const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setErrorMsg('');
-    setSuccessMsg('');
 
     // Field Validations
     if (!name.trim()) {
-      setErrorMsg('Restaurant name is required.');
+      setErrorMsg('Spot name is required.');
+      return;
+    }
+
+    if (!area.trim()) {
+      setErrorMsg('Area is required.');
       return;
     }
 
@@ -84,38 +133,61 @@ export default function AddSpotPage() {
     const lng = parseFloat(longitude);
 
     if (isNaN(lat) || isNaN(lng)) {
-      setErrorMsg('Please enter valid numerical latitude and longitude.');
+      setErrorMsg('Please pin the spot location by clicking "Pin Current Location".');
       return;
     }
 
     if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      setErrorMsg('Latitude must be between -90 and 90. Longitude must be between -180 and 180.');
+      setErrorMsg('Invalid coordinates captured. Please pin the location again.');
       return;
     }
 
     setLoading(true);
     try {
-      await createRestaurant({
-        name,
-        description,
-        address,
-        area,
+      const newSpot = await createRestaurant({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        area: area.trim(),
         coordinates: [lng, lat], // Backend expects [longitude, latitude]
         vibeTags,
         photoUrl: photoUrl || undefined,
       });
 
-      setSuccessMsg('Culinary spot added successfully! Redirecting...');
-      setTimeout(() => {
-        router.push('/');
-      }, 1500);
+      setCreatedSpot({
+        id: newSpot._id,
+        name: newSpot.name,
+        area: newSpot.area,
+        lat,
+        lng,
+      });
     } catch (err) {
       console.error('Failed to create restaurant:', err);
       const message = err instanceof Error ? err.message : 'Error adding spot. Please try again.';
       setErrorMsg(message);
+    } finally {
       setLoading(false);
     }
   };
+
+  /**
+   * Resets form state to allow adding another dining spot.
+   */
+  const handleResetForm = (): void => {
+    setName('');
+    setDescription('');
+    setArea(detectedCity || '');
+    setLatitude('');
+    setLongitude('');
+    setVibeInput('');
+    setVibeTags([]);
+    setPhotoUrl('');
+    setErrorMsg('');
+    setCreatedSpot(null);
+    setIsAddDishOpen(false);
+  };
+
+  const hasPinnedLocation = Boolean(latitude && longitude);
+  const currentPinMapsUrl = hasPinnedLocation ? `https://www.google.com/maps?q=${latitude},${longitude}` : '#';
 
   return (
     <div className="max-w-[700px] mx-auto animate-fade-in py-4 md:py-8">
@@ -128,225 +200,283 @@ export default function AddSpotPage() {
 
       <section className="mb-8">
         <h1 className="text-3xl font-extrabold mb-2">Add New Dining Spot</h1>
-        <p className="text-text-secondary">Mark a restaurant or cafe, upload a photo, and share it with the community.</p>
+        <p className="text-text-secondary">Mark a restaurant or cafe, pin its location, and share it with the community.</p>
       </section>
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-bg-secondary/20 border border-white/8 rounded-lg p-6 md:p-8 glass-panel shadow-2xl">
-        {/* Restaurant Name */}
-        <div>
-          <label htmlFor="spotName" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
-            Spot Name <span className="text-accent">*</span>
-          </label>
-          <input
-            id="spotName"
-            type="text"
-            required
-            disabled={loading}
-            placeholder="e.g. Baker Street Cafe"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full bg-bg-tertiary/40 border border-white/8 rounded p-3 text-text-primary focus:outline-none focus:border-accent transition-all duration-300"
-          />
-        </div>
+      {createdSpot ? (
+        <div className="bg-bg-secondary/20 border border-white/8 rounded-lg p-6 md:p-8 glass-panel shadow-2xl animate-fade-in text-center space-y-6">
+          <div className="w-16 h-16 bg-status-green/10 border border-status-green/30 text-status-green rounded-full flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(34,197,94,0.2)]">
+            <CheckCircle2 className="w-8 h-8" />
+          </div>
 
-        {/* Description */}
-        <div>
-          <label htmlFor="spotDescription" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
-            Description
-          </label>
-          <textarea
-            id="spotDescription"
-            disabled={loading}
-            placeholder="What makes this spot special? (e.g. Known for wood-fired pizzas)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full h-24 bg-bg-tertiary/40 border border-white/8 rounded p-3 text-text-primary focus:outline-none focus:border-accent transition-all duration-300 resize-none"
-          />
-        </div>
+          <div>
+            <h2 className="text-2xl font-bold text-text-primary mb-1">{createdSpot.name}</h2>
+            <p className="text-text-secondary text-sm flex items-center justify-center gap-1.5">
+              <MapPin className="w-4 h-4 text-accent" />
+              <span>{createdSpot.area}</span>
+            </p>
+          </div>
 
-        {/* Address */}
-        <div>
-          <label htmlFor="spotAddress" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
-            Address
-          </label>
-          <input
-            id="spotAddress"
-            type="text"
-            disabled={loading}
-            placeholder="e.g. 12 Bussy Street, White Town"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            className="w-full bg-bg-tertiary/40 border border-white/8 rounded p-3 text-text-primary focus:outline-none focus:border-accent transition-all duration-300"
-          />
-        </div>
+          <div className="p-4 bg-bg-tertiary/30 border border-white/5 rounded-md max-w-md mx-auto">
+            <p className="text-xs text-text-muted uppercase tracking-wider mb-1 font-semibold">Location Pin Configured</p>
+            <p className="text-sm text-text-secondary font-mono">
+              Lat: {createdSpot.lat.toFixed(5)}, Lng: {createdSpot.lng.toFixed(5)}
+            </p>
+          </div>
 
-        {/* Grid for Area & Coordinates */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Area */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setIsAddDishOpen(true)}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-accent to-rose-600 hover:from-accent-hover hover:to-rose-700 text-white font-bold px-6 py-3.5 rounded shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Signature Dish</span>
+            </button>
+
+            <a
+              href={`https://www.google.com/maps?q=${createdSpot.lat},${createdSpot.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 bg-bg-tertiary/60 border border-white/10 hover:bg-bg-tertiary text-text-primary font-semibold px-6 py-3.5 rounded transition-all duration-300"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span>Google Maps</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={handleResetForm}
+              className="flex items-center justify-center gap-2 bg-transparent hover:bg-white/5 text-text-secondary hover:text-text-primary border border-white/10 font-semibold px-5 py-3.5 rounded transition-all duration-300 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Another Spot</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                handleResetForm();
+                router.push('/');
+              }}
+              className="flex items-center justify-center gap-2 bg-transparent hover:bg-white/5 text-text-secondary hover:text-text-primary border border-white/10 font-semibold px-5 py-3.5 rounded transition-all duration-300 cursor-pointer"
+            >
+              <span>Done</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6 bg-bg-secondary/20 border border-white/8 rounded-lg p-6 md:p-8 glass-panel shadow-2xl">
+          {/* Restaurant Name */}
+          <div>
+            <label htmlFor="spotName" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
+              Spot Name <span className="text-accent">*</span>
+            </label>
+            <input
+              id="spotName"
+              type="text"
+              required
+              disabled={loading}
+              placeholder="e.g. Baker Street Cafe"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-bg-tertiary/40 border border-white/8 rounded p-3 text-text-primary focus:outline-none focus:border-accent transition-all duration-300"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label htmlFor="spotDescription" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
+              Description
+            </label>
+            <textarea
+              id="spotDescription"
+              disabled={loading}
+              placeholder="What makes this spot special? (e.g. Known for wood-fired pizzas)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full h-24 bg-bg-tertiary/40 border border-white/8 rounded p-3 text-text-primary focus:outline-none focus:border-accent transition-all duration-300 resize-none"
+            />
+          </div>
+
+          {/* Area Text Box */}
           <div>
             <label htmlFor="spotArea" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
               Area <span className="text-accent">*</span>
             </label>
-            <select
+            <input
               id="spotArea"
-              value={area}
+              type="text"
+              required
               disabled={loading}
+              placeholder="e.g. White Town, MG Road, Indiranagar"
+              value={area}
               onChange={(e) => setArea(e.target.value)}
               className="w-full bg-bg-tertiary/40 border border-white/8 rounded p-3 text-text-primary focus:outline-none focus:border-accent transition-all duration-300"
-            >
-              <option value="White Town" className="bg-bg-primary text-text-primary">White Town</option>
-              <option value="Auroville Road" className="bg-bg-primary text-text-primary">Auroville Road</option>
-              <option value="Heritage Town" className="bg-bg-primary text-text-primary">Heritage Town</option>
-              <option value="Others" className="bg-bg-primary text-text-primary">Others</option>
-            </select>
-          </div>
-
-          {/* Coordinates Actions */}
-          <div className="flex flex-col justify-end">
-            <button
-              type="button"
-              disabled={locationLoading || loading}
-              onClick={handleGetCurrentLocation}
-              className="flex items-center justify-center gap-2 bg-accent/10 border border-accent/20 text-accent font-semibold p-3 rounded hover:bg-accent/20 transition-all duration-300 disabled:opacity-50"
-            >
-              {locationLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Locating...</span>
-                </>
-              ) : (
-                <>
-                  <Navigation className="w-4 h-4" />
-                  <span>Get Current Coordinates</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Latitude & Longitude Inputs */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="spotLatitude" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
-              Latitude <span className="text-accent">*</span>
-            </label>
-            <input
-              id="spotLatitude"
-              type="text"
-              required
-              disabled={loading}
-              placeholder="e.g. 11.9344"
-              value={latitude}
-              onChange={(e) => setLatitude(e.target.value)}
-              className="w-full bg-bg-tertiary/40 border border-white/8 rounded p-3 text-text-primary focus:outline-none focus:border-accent transition-all duration-300"
             />
           </div>
-          <div>
-            <label htmlFor="spotLongitude" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
-              Longitude <span className="text-accent">*</span>
-            </label>
-            <input
-              id="spotLongitude"
-              type="text"
-              required
-              disabled={loading}
-              placeholder="e.g. 79.8306"
-              value={longitude}
-              onChange={(e) => setLongitude(e.target.value)}
-              className="w-full bg-bg-tertiary/40 border border-white/8 rounded p-3 text-text-primary focus:outline-none focus:border-accent transition-all duration-300"
-            />
-          </div>
-        </div>
 
-        {/* Vibe Tags */}
-        <div>
-          <label htmlFor="vibeInput" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
-            Vibe Tags (e.g. Cozy, Pet-friendly, Outdoor)
-          </label>
-          <div className="flex gap-2 mb-3">
-            <input
-              id="vibeInput"
-              type="text"
-              disabled={loading}
-              placeholder="Add a vibe..."
-              value={vibeInput}
-              onChange={(e) => setVibeInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addVibeTag();
-                }
-              }}
-              className="flex-grow bg-bg-tertiary/40 border border-white/8 rounded p-3 text-text-primary focus:outline-none focus:border-accent transition-all duration-300"
-            />
-            <button
-              type="button"
-              disabled={loading}
-              onClick={addVibeTag}
-              className="px-4 bg-bg-tertiary/60 border border-white/8 text-text-primary rounded font-semibold hover:bg-bg-tertiary transition-all duration-300"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
+          {/* Location Pin Capture Section (Background GPS) */}
+          <div className="p-4 bg-bg-tertiary/20 border border-white/8 rounded-lg space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider">
+                  Location Pin <span className="text-accent">*</span>
+                </label>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  Coordinates are captured automatically in the background.
+                </p>
+              </div>
 
-          {/* Vibe tag list */}
-          {vibeTags.length > 0 && (
-            <div className="flex flex-wrap gap-2 p-3 bg-bg-tertiary/20 border border-white/5 rounded">
-              {vibeTags.map((tag) => (
-                <span
-                  key={tag}
-                  className="flex items-center gap-1 bg-accent/10 border border-accent/20 text-accent text-xs font-semibold px-2.5 py-1 rounded-full animate-fade-in"
+              <button
+                type="button"
+                disabled={locationLoading || loading}
+                onClick={handleGetCurrentLocation}
+                className="flex items-center justify-center gap-2 bg-accent/15 border border-accent/30 text-accent hover:bg-accent/25 font-semibold px-4 py-2.5 rounded transition-all duration-300 disabled:opacity-50 shrink-0 text-sm"
+              >
+                {locationLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Pinning Location...</span>
+                  </>
+                ) : hasPinnedLocation ? (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Re-pin Current Location</span>
+                  </>
+                ) : (
+                  <>
+                    <Navigation className="w-4 h-4" />
+                    <span>Pin Current Location</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {hasPinnedLocation ? (
+              <div className="flex items-center justify-between p-3 bg-status-green/10 border border-status-green/20 rounded text-xs text-status-green animate-fade-in flex-wrap gap-2">
+                <div className="flex items-center gap-1.5 font-medium">
+                  <MapPin className="w-4 h-4 shrink-0 text-status-green" />
+                  <span>Pin Location Active ({latitude}, {longitude})</span>
+                </div>
+                <a
+                  href={currentPinMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 underline text-xs hover:text-white transition-colors"
                 >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeVibeTag(tag)}
-                    className="hover:text-red-400 transition-colors"
+                  <span>Preview on Google Maps</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            ) : (
+              <div className="p-3 bg-bg-primary/40 border border-dashed border-white/10 rounded text-xs text-text-muted flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-text-muted shrink-0" />
+                <span>No location pin set yet. Click &ldquo;Pin Current Location&rdquo; to attach your coordinates.</span>
+              </div>
+            )}
+          </div>
+
+          {/* Vibe Tags */}
+          <div>
+            <label htmlFor="vibeInput" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
+              Vibe Tags (e.g. Cozy, Pet-friendly, Outdoor)
+            </label>
+            <div className="flex gap-2 mb-3">
+              <input
+                id="vibeInput"
+                type="text"
+                disabled={loading}
+                placeholder="Add a vibe..."
+                value={vibeInput}
+                onChange={(e) => setVibeInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addVibeTag();
+                  }
+                }}
+                className="flex-grow bg-bg-tertiary/40 border border-white/8 rounded p-3 text-text-primary focus:outline-none focus:border-accent transition-all duration-300"
+              />
+              <button
+                type="button"
+                disabled={loading}
+                onClick={addVibeTag}
+                className="px-4 bg-bg-tertiary/60 border border-white/8 text-text-primary rounded font-semibold hover:bg-bg-tertiary transition-all duration-300"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Vibe tag list */}
+            {vibeTags.length > 0 && (
+              <div className="flex flex-wrap gap-2 p-3 bg-bg-tertiary/20 border border-white/5 rounded">
+                {vibeTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="flex items-center gap-1 bg-accent/10 border border-accent/20 text-accent text-xs font-semibold px-2.5 py-1 rounded-full animate-fade-in"
                   >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeVibeTag(tag)}
+                      className="hover:text-red-400 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Photo Upload */}
+          <div>
+            <PhotoUpload
+              value={photoUrl}
+              folder="spots"
+              onUploadSuccess={(fileId) => setPhotoUrl(fileId)}
+              onClear={() => setPhotoUrl('')}
+              label="Upload Dining Spot Photo"
+            />
+          </div>
+
+          {/* Form error notification */}
+          {errorMsg && (
+            <div className="text-red-500 font-medium bg-red-500/10 p-3.5 rounded border border-red-500/20 text-sm">
+              {errorMsg}
             </div>
           )}
-        </div>
 
-        {/* Photo Upload */}
-        <div>
-          <PhotoUpload
-            onUploadSuccess={(fileId) => setPhotoUrl(fileId)}
-            label="Upload Dining Spot Photo"
-          />
-        </div>
+          {/* Submit button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-accent to-rose-600 hover:from-accent-hover hover:to-rose-700 text-white font-extrabold p-4 rounded shadow-lg transition-all duration-300 disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Publishing Spot...</span>
+              </>
+            ) : (
+              <span>Publish Spot</span>
+            )}
+          </button>
+        </form>
+      )}
 
-        {/* Form status notification */}
-        {errorMsg && (
-          <div className="text-red-500 font-medium bg-red-500/10 p-3.5 rounded border border-red-500/20 text-sm">
-            {errorMsg}
-          </div>
-        )}
-        {successMsg && (
-          <div className="text-green-500 font-medium bg-green-500/10 p-3.5 rounded border border-green-500/20 text-sm">
-            {successMsg}
-          </div>
-        )}
-
-        {/* Submit button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-accent to-rose-600 hover:from-accent-hover hover:to-rose-700 text-white font-extrabold p-4 rounded shadow-lg transition-all duration-300 disabled:opacity-50"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Creating Spot...</span>
-            </>
-          ) : (
-            <span>Publish Spot</span>
-          )}
-        </button>
-      </form>
+      {createdSpot && (
+        <AddDishModal
+          isOpen={isAddDishOpen}
+          restaurantId={createdSpot.id}
+          restaurantName={createdSpot.name}
+          onClose={() => setIsAddDishOpen(false)}
+          onDishAdded={() => {
+            setIsAddDishOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

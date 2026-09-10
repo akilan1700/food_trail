@@ -5,9 +5,11 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trail, createTrail, Restaurant, Stop } from '../services/api';
 import { Plus, Trash2, X } from 'lucide-react';
+import { useAppSelector } from '../services/hooks';
+import { selectDetectedCity } from '../services/authSlice';
 import PhotoUpload from './PhotoUpload';
 
 interface TrailCreatorProps {
@@ -21,11 +23,40 @@ export default function TrailCreator({ allRestaurants, onSuccess, onCancel }: Tr
   const [formDesc, setFormDesc] = useState('');
   const [formDuration, setFormDuration] = useState(30);
   const [formDistance, setFormDistance] = useState(1200);
-  const [formArea, setFormArea] = useState<'White Town' | 'Auroville Road' | 'Heritage Town' | 'Others'>('White Town');
+  const detectedCity = useAppSelector(selectDetectedCity);
+  const [formArea, setFormArea] = useState('');
   const [formPhotoUrl, setFormPhotoUrl] = useState('');
   const [formStops, setFormStops] = useState<{ order: number; restaurantId: string; description: string }[]>([
     { order: 1, restaurantId: '', description: '' }
   ]);
+
+  // Sync detected city on mount to avoid SSR hydration mismatch
+  useEffect(() => {
+    if (detectedCity && !formArea) {
+      setFormArea(detectedCity);
+    }
+  }, [detectedCity, formArea]);
+
+  /**
+   * Resets all fields in the walking trail form.
+   */
+  const resetForm = (): void => {
+    setFormName('');
+    setFormDesc('');
+    setFormDuration(30);
+    setFormDistance(1200);
+    setFormArea(detectedCity || '');
+    setFormPhotoUrl('');
+    setFormStops([{ order: 1, restaurantId: '', description: '' }]);
+  };
+
+  /**
+   * Cancels trail creation and resets the form.
+   */
+  const handleCancel = (): void => {
+    resetForm();
+    onCancel();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +85,7 @@ export default function TrailCreator({ allRestaurants, onSuccess, onCancel }: Tr
         })) as unknown as Stop[],
       });
 
+      resetForm();
       onSuccess(newTrail);
     } catch (error) {
       console.error('Failed to create trail:', error);
@@ -68,7 +100,7 @@ export default function TrailCreator({ allRestaurants, onSuccess, onCancel }: Tr
         <button
           type="button"
           className="text-text-muted hover:text-text-primary bg-transparent border-none cursor-pointer"
-          onClick={onCancel}
+          onClick={handleCancel}
         >
           <X className="w-5 h-5" />
         </button>
@@ -126,17 +158,14 @@ export default function TrailCreator({ allRestaurants, onSuccess, onCancel }: Tr
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-text-muted uppercase tracking-wider">Area *</label>
-            <select
+            <input
+              type="text"
               required
-              className="bg-bg-tertiary text-text-primary border border-white/8 rounded-sm p-3 outline-none focus:border-accent cursor-pointer text-sm"
+              placeholder="e.g. White Town, MG Road, Indiranagar"
+              className="bg-bg-tertiary/40 border border-white/8 text-text-primary rounded-sm p-3 outline-none focus:border-accent text-sm"
               value={formArea}
-              onChange={(e) => setFormArea(e.target.value as 'White Town' | 'Auroville Road' | 'Heritage Town' | 'Others')}
-            >
-              <option value="White Town">White Town</option>
-              <option value="Heritage Town">Heritage Town</option>
-              <option value="Auroville Road">Auroville Road</option>
-              <option value="Others">Others</option>
-            </select>
+              onChange={(e) => setFormArea(e.target.value)}
+            />
           </div>
         </div>
 
@@ -144,8 +173,11 @@ export default function TrailCreator({ allRestaurants, onSuccess, onCancel }: Tr
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-text-muted uppercase tracking-wider">Trail Cover Image</label>
             <PhotoUpload
-              label="Upload Cover to Google Drive"
+              value={formPhotoUrl}
+              folder="trails"
               onUploadSuccess={(fileId) => setFormPhotoUrl(fileId)}
+              onClear={() => setFormPhotoUrl('')}
+              label="Upload Trail Cover Photo"
             />
           </div>
         </div>
@@ -231,7 +263,7 @@ export default function TrailCreator({ allRestaurants, onSuccess, onCancel }: Tr
         <button
           type="button"
           className="bg-transparent text-text-secondary border border-white/10 rounded-sm px-6 py-3 font-semibold cursor-pointer transition-all duration-300 hover:bg-white/5"
-          onClick={onCancel}
+          onClick={handleCancel}
         >
           Cancel
         </button>

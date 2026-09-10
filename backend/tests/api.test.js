@@ -170,6 +170,29 @@ describe('FoodTrail API Integration Tests', () => {
     expect(res.body.stops[0].description).toBe('Enjoy the vibe');
   });
 
+  test('POST /api/trails allows custom area text string', async () => {
+    const res = await request(app)
+      .post('/api/trails')
+      .send({
+        name: 'Indiranagar Craft Beer & Bites Walk',
+        description: 'Exploring cafes and pubs in Indiranagar',
+        estimatedDuration: 45,
+        distance: 2000,
+        area: 'Indiranagar 12th Main',
+        stops: [
+          {
+            order: 1,
+            restaurantId: sampleRestaurant._id,
+            description: 'Start with craft coffee',
+          },
+        ],
+      });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.name).toBe('Indiranagar Craft Beer & Bites Walk');
+    expect(res.body.area).toBe('Indiranagar 12th Main');
+  });
+
   // 5. Trip Saving & Sharing
   test('POST /api/trips and GET /api/trips/:shareId works', async () => {
     const postRes = await request(app)
@@ -206,6 +229,23 @@ describe('FoodTrail API Integration Tests', () => {
     expect(res.body.name).toBe('User Created Cafe');
     expect(res.body.area).toBe('White Town');
     expect(res.body.location.coordinates).toEqual([79.8335, 11.9324]);
+  });
+
+  test('POST /api/restaurants allows custom area text box string', async () => {
+    const res = await request(app)
+      .post('/api/restaurants')
+      .send({
+        name: 'Indiranagar Bakery Spot',
+        description: 'Great sourdough',
+        area: 'Indiranagar 100ft Road',
+        coordinates: [77.6408, 12.9784],
+        vibeTags: ['Bakery'],
+      });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.name).toBe('Indiranagar Bakery Spot');
+    expect(res.body.area).toBe('Indiranagar 100ft Road');
+    expect(res.body.location.coordinates).toEqual([77.6408, 12.9784]);
   });
 
   test('POST /api/restaurants validation fails on missing name', async () => {

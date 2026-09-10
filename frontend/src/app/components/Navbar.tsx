@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectCurrentUser, selectDetectedCity, setDetectedLocation } from '../services/authSlice';
 import TripLink from './TripLink';
+import Logo from './Logo';
 import { Compass, Search, MapPin, PlusCircle, User, Settings } from 'lucide-react';
 
 export default function Navbar() {
@@ -58,10 +59,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 px-4 md:px-6 py-3.5 flex justify-between items-center border-b border-white/8 glass-panel">
       <div className="flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-1.5 text-2xl font-extrabold text-text-primary hover:opacity-90">
-          <MapPin className="w-6 h-6 text-accent shrink-0" />
-          <span>Food<span className="text-accent">Trail</span></span>
-        </Link>
+        <Logo href="/" size="sm" priority />
         {isClient && (
           <button
             type="button"

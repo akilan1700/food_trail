@@ -260,6 +260,37 @@ describe('FoodTrail API Integration Tests', () => {
     expect(res.body.error.message).toContain('name is required');
   });
 
+  test('GET /api/restaurants/my-spots returns only spots created by the authenticated user', async () => {
+    const jwt = require('jsonwebtoken');
+    const User = require('../src/models/User');
+    const testUser = new User({
+      email: 'creator@foodtrail.com',
+      name: 'Spot Creator',
+      mpin: '123456',
+    });
+    await testUser.save();
+
+    const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
+    const token = jwt.sign({ userId: testUser._id }, JWT_SECRET, { expiresIn: '1d' });
+
+    // Create a spot by this user
+    const userSpot = new Restaurant({
+      name: 'Creator Cafe',
+      area: 'White Town',
+      location: { type: 'Point', coordinates: [79.83, 11.93] },
+      createdBy: testUser._id,
+    });
+    await userSpot.save();
+
+    const res = await request(app)
+      .get('/api/restaurants/my-spots')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.length).toBe(1);
+    expect(res.body[0].name).toBe('Creator Cafe');
+  });
+
   test('POST /api/dishes creates a new dish for a restaurant', async () => {
     const res = await request(app)
       .post('/api/dishes')

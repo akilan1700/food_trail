@@ -43,15 +43,11 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-bg-primary via-bg-secondary to-bg-primary">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-bg-primary">
       <div className="w-full max-w-md bg-bg-secondary border border-white/10 rounded-2xl p-8 glass-panel shadow-2xl relative overflow-hidden animate-fade-in">
-        {/* Decorative ambient glow */}
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/20 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-accent to-amber-500 text-white shadow-lg shadow-accent/20 mb-3">
+          <div className="inline-flex p-3 rounded-2xl bg-accent text-white shadow-lg mb-3">
             <Shield className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-black text-text-primary tracking-tight">Admin Console</h1>
@@ -108,7 +104,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-accent to-rose-600 hover:from-accent-hover hover:to-rose-700 text-white text-sm font-bold rounded-lg shadow-lg shadow-accent/25 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+            className="w-full py-3 bg-accent hover:bg-accent-hover text-white text-sm font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
           >
             {loading ? (
               <>

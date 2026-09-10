@@ -63,7 +63,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-gradient-to-r from-bg-secondary via-bg-tertiary to-bg-secondary border border-white/8 glass-panel">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-bg-secondary border border-white/8 glass-panel">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-accent uppercase tracking-widest mb-1">
             <Sparkles className="w-3.5 h-3.5" />
@@ -80,14 +80,14 @@ export default function AdminDashboardPage() {
         <div className="flex items-center gap-3 shrink-0">
           <Link
             href="/dishes"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-bold text-xs shadow-lg shadow-amber-500/20 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs shadow-lg transition-all"
           >
             <Sparkles className="w-4 h-4 text-black" />
             <span>Curate Signature Dishes</span>
           </Link>
           <Link
             href="/restaurants"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-lg shadow-accent/20 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-lg transition-all"
           >
             <PlusCircle className="w-4 h-4" />
             <span>Add Spot</span>

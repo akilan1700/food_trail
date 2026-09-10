@@ -171,6 +171,13 @@ export async function getRestaurants(): Promise<Restaurant[]> {
 }
 
 /**
+ * Fetch all dining spots created by the currently authenticated user.
+ */
+export async function getMySpots(): Promise<Restaurant[]> {
+  return apiRequest<Restaurant[]>('/restaurants/my-spots');
+}
+
+/**
  * Create a saved trip in the database to generate a share ID.
  */
 export async function createSharedTrip(restaurantIds: string[], trailId?: string): Promise<{ shareId: string }> {

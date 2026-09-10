@@ -11,7 +11,7 @@ import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectCurrentUser, selectDetectedCity, setDetectedLocation } from '../services/authSlice';
 import TripLink from './TripLink';
 import Logo from './Logo';
-import { Compass, Search, MapPin, PlusCircle, User, Settings } from 'lucide-react';
+import { Compass, Search, MapPin, PlusCircle, User, Settings, Store } from 'lucide-react';
 
 export default function Navbar() {
   const dispatch = useAppDispatch();
@@ -77,6 +77,13 @@ export default function Navbar() {
       {isClient && user && (
         <div className="flex items-center gap-2 md:hidden">
           <Link
+            href="/my-spots"
+            title="My Added Spots"
+            className="flex items-center justify-center text-text-secondary hover:text-text-primary p-2.5 rounded-full transition-all duration-300 hover:bg-bg-tertiary/60 shrink-0 border border-white/5"
+          >
+            <Store className="w-5 h-5 text-accent" />
+          </Link>
+          <Link
             href="/settings"
             title="Settings"
             className="flex items-center justify-center text-text-secondary hover:text-text-primary p-2.5 rounded-full transition-all duration-300 hover:bg-bg-tertiary/60 shrink-0 border border-white/5"
@@ -93,6 +100,10 @@ export default function Navbar() {
         </Link>
         {isClient && user && (
           <>
+            <Link href="/my-spots" className="flex flex-col md:flex-row items-center gap-1.5 text-xs md:text-[0.95rem] font-medium text-text-secondary p-[0.35rem] md:px-3 md:py-2 rounded-sm transition-all duration-300 hover:text-text-primary hover:bg-bg-tertiary">
+              <Store className="w-4 h-4 shrink-0 text-accent" />
+              <span>My Spots</span>
+            </Link>
             <Link href="/trails" className="flex flex-col md:flex-row items-center gap-1.5 text-xs md:text-[0.95rem] font-medium text-text-secondary p-[0.35rem] md:px-3 md:py-2 rounded-sm transition-all duration-300 hover:text-text-primary hover:bg-bg-tertiary">
               <Compass className="w-4 h-4 shrink-0" />
               <span>Walking Trails</span>

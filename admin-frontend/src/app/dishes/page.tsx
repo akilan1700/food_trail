@@ -244,7 +244,7 @@ export default function AdminDishesPage() {
           type="button"
           onClick={openCreateModal}
           disabled={restaurants.length === 0}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black font-black text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer self-start sm:self-auto"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-black text-xs shadow-lg transition-all cursor-pointer self-start sm:self-auto"
         >
           <PlusCircle className="w-4 h-4 text-black" />
           <span>Add Signature Dish</span>
@@ -339,7 +339,7 @@ export default function AdminDishesPage() {
           </p>
           <button
             onClick={openCreateModal}
-            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold text-xs rounded-lg shadow-md cursor-pointer"
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs rounded-lg shadow-md cursor-pointer"
           >
             + Add First Signature Dish
           </button>
@@ -361,7 +361,7 @@ export default function AdminDishesPage() {
                 key={dish._id}
                 className={`relative rounded-xl overflow-hidden glass-card border transition-all flex flex-col group ${
                   dish.isSignature
-                    ? 'border-amber-500/40 bg-gradient-to-b from-amber-500/5 to-bg-tertiary/60'
+                    ? 'border-amber-500/40 bg-bg-secondary'
                     : 'border-white/8'
                 }`}
               >
@@ -589,7 +589,7 @@ export default function AdminDishesPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-black rounded-lg text-xs font-black transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-black rounded-lg text-xs font-black transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {submitting ? (
                     <>

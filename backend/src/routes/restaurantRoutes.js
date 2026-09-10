@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const Restaurant = require('../models/Restaurant');
 const Dish = require('../models/Dish');
+const authMiddleware = require('../middleware/authMiddleware');
 
 /**
  * @route   GET /api/restaurants
@@ -32,6 +33,20 @@ router.get('/', async (req, res, next) => {
       query.vibeTags = { $all: vibes };
     }
     const restaurants = await Restaurant.find(query).sort({ rating: -1, _id: -1 });
+    res.json(restaurants);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   GET /api/restaurants/my-spots
+ * @desc    Get all restaurants/spots created by the authenticated user
+ * @access  Private
+ */
+router.get('/my-spots', authMiddleware, async (req, res, next) => {
+  try {
+    const restaurants = await Restaurant.find({ createdBy: req.user._id }).sort({ createdAt: -1 });
     res.json(restaurants);
   } catch (error) {
     next(error);

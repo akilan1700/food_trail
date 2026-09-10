@@ -63,7 +63,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <aside className="hidden lg:flex flex-col w-64 border-r border-white/8 bg-bg-secondary/90 backdrop-blur-md shrink-0">
         {/* Brand Header */}
         <div className="p-6 border-b border-white/8 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-accent to-amber-500 flex items-center justify-center shadow-lg shadow-accent/20">
+          <div className="w-9 h-9 rounded-lg bg-accent flex items-center justify-center shadow-lg">
             <Shield className="w-5 h-5 text-white" />
           </div>
           <div>

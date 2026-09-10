@@ -90,11 +90,17 @@ export default function ProfilePage() {
           <span className="text-xs text-text-secondary mt-1 font-semibold">Walks Completed</span>
         </div>
 
-        <div className="glass-panel p-5 text-center flex flex-col items-center justify-center hover:border-status-green/35 transition-all duration-300">
-          <Award className="w-6 h-6 text-status-green mb-2" />
+        <Link
+          href="/my-spots"
+          className="glass-panel p-5 text-center flex flex-col items-center justify-center hover:border-status-green/50 transition-all duration-300 group cursor-pointer"
+        >
+          <Award className="w-6 h-6 text-status-green mb-2 group-hover:scale-110 transition-transform" />
           <span className="text-3xl font-black text-text-primary">{user.profile?.cafesDiscovered || 0}</span>
-          <span className="text-xs text-text-secondary mt-1 font-semibold">Cafes Discovered</span>
-        </div>
+          <span className="text-xs text-text-secondary mt-1 font-semibold flex items-center gap-1 group-hover:text-status-green transition-colors">
+            <span>Spots I Added</span>
+            <span className="text-[0.65rem]">&rarr;</span>
+          </span>
+        </Link>
       </div>
 
       {/* User Details Card */}
@@ -148,21 +154,27 @@ export default function ProfilePage() {
           <span>Quick Settings & Actions</span>
         </h2>
         <p className="text-sm text-text-secondary leading-relaxed mb-5">
-          Modify your preferences, change display modes, toggle push notifications, and customize how coordinates are rendered.
+          View your submitted spots, modify preferences, toggle push notifications, and customize your profile.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 border-t border-white/5 pt-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-white/5 pt-5">
+          <Link
+            href="/my-spots"
+            className="bg-accent text-white border-none rounded-sm py-3 text-center font-bold text-xs transition-all hover:bg-accent-hover block shadow-[0_4px_12px_rgba(244,63,94,0.25)]"
+          >
+            My Added Spots ({user.profile?.cafesDiscovered || 0})
+          </Link>
           <Link
             href="/settings"
-            className="flex-1 bg-accent text-white border-none rounded-sm py-3.5 text-center font-bold transition-all hover:bg-accent-hover hover:scale-[1.01] block shadow-[0_4px_12px_rgba(244,63,94,0.25)]"
+            className="bg-bg-tertiary border border-white/8 text-text-secondary hover:text-text-primary hover:bg-bg-tertiary/80 rounded-sm py-3 text-center font-semibold text-xs transition-all block"
           >
-            Go to Settings
+            Settings
           </Link>
           <Link
             href="/"
-            className="flex-1 bg-bg-tertiary border border-white/8 text-text-secondary hover:text-text-primary hover:bg-bg-tertiary/80 rounded-sm py-3.5 text-center font-semibold transition-all block"
+            className="bg-bg-tertiary border border-white/8 text-text-secondary hover:text-text-primary hover:bg-bg-tertiary/80 rounded-sm py-3 text-center font-semibold text-xs transition-all block"
           >
-            Explore {detectedCity || user?.profile?.city ? `${detectedCity || user?.profile?.city} Spots` : 'Nearby Spots'}
+            Explore Spots
           </Link>
         </div>
       </div>

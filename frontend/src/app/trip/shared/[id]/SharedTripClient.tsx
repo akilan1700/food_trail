@@ -23,31 +23,35 @@ export default function SharedTripClient() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const fetchSharedTrip = async () => {
-    setLoading(true);
-    setErrorMsg('');
-    try {
-      if (typeof id === 'string') {
-        const data = await getSharedTrip(id);
-        setTrip(data);
-      }
-    } catch (error) {
-      console.error('Error fetching shared trip:', error);
-      setErrorMsg('This shared food trail could not be found or could not connect to server.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (id && id !== 'shared') {
-      Promise.resolve().then(() => {
-        fetchSharedTrip();
-      });
+    let isCancelled = false;
+
+    if (typeof id === 'string' && id !== 'shared') {
+      getSharedTrip(id)
+        .then((data) => {
+          if (!isCancelled) {
+            setTrip(data);
+            setLoading(false);
+          }
+        })
+        .catch((error) => {
+          console.error('Error fetching shared trip:', error);
+          if (!isCancelled) {
+            setErrorMsg('This shared food trail could not be found or could not connect to server.');
+            setLoading(false);
+          }
+        });
     } else {
-      setLoading(false);
+      Promise.resolve().then(() => {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    return () => {
+      isCancelled = true;
+    };
   }, [id]);
 
   // Import all restaurant IDs into visitor's LocalStorage saved trip list

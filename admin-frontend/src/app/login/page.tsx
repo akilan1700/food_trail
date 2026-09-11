@@ -122,7 +122,7 @@ export default function AdminLoginPage() {
 
         <div className="mt-8 pt-4 border-t border-white/5 text-center">
           <p className="text-[0.7rem] text-text-muted">
-            Access strictly restricted to authorized administrators configured in <code className="text-accent">adminCredentials.json</code>.
+            Access strictly restricted to authorized administrators.
           </p>
         </div>
       </div>

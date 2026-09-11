@@ -1,7 +1,7 @@
 // File: tests/admin.test.js
-// Description: Integration tests for Admin model, JSON seeding, Admin authentication, and Admin management endpoints.
+// Description: Integration tests for Admin model, Admin authentication, and Admin management endpoints.
 // Author: Akilan M
-// Created: 2026-09-10T11:26:35+05:30
+// Updated: 2026-09-11
 
 const request = require('supertest');
 const mongoose = require('mongoose');
@@ -11,7 +11,6 @@ const Admin = require('../src/models/Admin');
 const User = require('../src/models/User');
 const Restaurant = require('../src/models/Restaurant');
 const Dish = require('../src/models/Dish');
-const { seedAdminsFromConfig } = require('../src/services/adminSeedService');
 
 const { getJwtSecret } = require('../src/utils/jwtSecret');
 
@@ -94,22 +93,7 @@ describe('Admin Authentication & Management API Tests', () => {
     await sampleDish.save();
   });
 
-  // 1. Env seeding service test
-  test('seedAdminsFromConfig should upsert admin accounts from env', async () => {
-    await Admin.deleteMany({});
-    process.env.ADMIN_EMAIL = 'seeded-admin@foodtrail.com';
-    process.env.ADMIN_MPIN = '654321';
-    const count = await seedAdminsFromConfig();
-    expect(count).toBeGreaterThan(0);
-
-    const seeded = await Admin.findOne({ email: 'seeded-admin@foodtrail.com' });
-    expect(seeded).not.toBeNull();
-    expect(seeded.compareMpin('654321')).toBe(true);
-    delete process.env.ADMIN_EMAIL;
-    delete process.env.ADMIN_MPIN;
-  });
-
-  // 2. Admin Login Tests
+  // 1. Admin Login Tests
   test('POST /api/admin/login should authenticate valid admin credentials', async () => {
     const res = await request(app)
       .post('/api/admin/login')

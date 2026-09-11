@@ -6,15 +6,26 @@
 
 'use client';
 
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect, useSyncExternalStore, type MouseEvent } from 'react';
 import Link from 'next/link';
 
-import { Trail, getTrails, getTrailDetails, formatPhotoUrl, getGoogleMapsUrl, shareFoodTrail } from '../services/api';
-import { Footprints, Route, Compass, Bookmark, MapPin, Sun, SunMedium, Share2 } from 'lucide-react';
+import { Trail, getTrails, getTrailDetails, formatPhotoUrl, getGoogleMapsUrl, shareFoodTrail, deleteTrail } from '../services/api';
+import { Footprints, Route, Compass, Bookmark, MapPin, Sun, SunMedium, Share2, Trash2 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { addRestaurants, setSavedTrailId } from '../services/tripSlice';
 import { selectCurrentUser, selectDetectedCity } from '../services/authSlice';
 import { useWakeLock, triggerHaptic } from '../services/usePwa';
+
+/**
+ * Returns true when the signed-in user may delete this trail.
+ * @param trail - Trail record
+ * @param userId - Current user id
+ */
+function canDeleteTrail(trail: Trail, userId?: string | null): boolean {
+  if (!userId) return false;
+  if (!trail.createdBy) return true;
+  return String(trail.createdBy) === String(userId);
+}
 
 export default function TrailsPage() {
   const dispatch = useAppDispatch();
@@ -24,11 +35,15 @@ export default function TrailsPage() {
   const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const isClient = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false
   );
+
+  const userId = user?.id || user?._id || null;
 
   const { isSupported: isWakeLockSupported, isLocked: isWakeLocked, toggleWakeLock } = useWakeLock();
 
@@ -37,9 +52,10 @@ export default function TrailsPage() {
     try {
       const data = await getTrails();
       setTrails(data);
-      // Default to select first trail if available
       if (data.length > 0) {
         fetchTrailDetails(data[0]._id);
+      } else {
+        setSelectedTrail(null);
       }
     } catch (error) {
       console.error('Error fetching trails:', error);
@@ -60,7 +76,6 @@ export default function TrailsPage() {
     }
   };
 
-  // Fetch all trails on load
   useEffect(() => {
     Promise.resolve().then(() => {
       fetchTrails();
@@ -68,7 +83,6 @@ export default function TrailsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Save all stops/restaurants of this trail to My Trip saved list
   const handleSaveTrailRestaurants = () => {
     if (!selectedTrail) return;
     triggerHaptic(20);
@@ -78,7 +92,6 @@ export default function TrailsPage() {
     alert(`Added all ${selectedTrail.stops.length} places from "${selectedTrail.name}" to your Trip list!`);
   };
 
-  // Share trail
   const handleShareTrail = async (trail: Trail) => {
     triggerHaptic(15);
     const url = typeof window !== 'undefined' ? `${window.location.origin}/trails` : '';
@@ -87,6 +100,41 @@ export default function TrailsPage() {
       text: `Walk this food trail: ${trail.name} (${(trail.distance / 1000).toFixed(1)} km, ${trail.estimatedDuration} mins)!`,
       url,
     });
+  };
+
+  /**
+   * Deletes a trail after confirmation and refreshes the list.
+   * @param trail - Trail to remove
+   * @param event - Click event (stops card selection)
+   */
+  const handleDeleteTrail = async (trail: Trail, event?: MouseEvent) => {
+    event?.stopPropagation();
+    if (!userId) {
+      setDeleteError('Sign in to delete a walking trail.');
+      return;
+    }
+    if (!window.confirm(`Delete walking trail "${trail.name}"? This cannot be undone.`)) {
+      return;
+    }
+    setDeletingId(trail._id);
+    setDeleteError(null);
+    try {
+      await deleteTrail(trail._id);
+      triggerHaptic(20);
+      const remaining = trails.filter((t) => t._id !== trail._id);
+      setTrails(remaining);
+      if (selectedTrail?._id === trail._id) {
+        if (remaining.length > 0) {
+          fetchTrailDetails(remaining[0]._id);
+        } else {
+          setSelectedTrail(null);
+        }
+      }
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete trail.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -102,6 +150,9 @@ export default function TrailsPage() {
             Create Custom Walking Trail
           </button>
         </Link>
+        {deleteError && (
+          <p className="mt-4 text-sm text-red-400" role="alert">{deleteError}</p>
+        )}
       </section>
 
       {loading ? (
@@ -114,13 +165,26 @@ export default function TrailsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
             {trails.map((trail) => {
               const isActive = selectedTrail?._id === trail._id;
+              const showDelete = canDeleteTrail(trail, userId);
               return (
                 <div
                   key={trail._id}
-                  className={`overflow-hidden cursor-pointer glass-card ${isActive ? 'animate-pulse-glow' : ''}`}
+                  className={`overflow-hidden cursor-pointer glass-card relative ${isActive ? 'animate-pulse-glow' : ''}`}
                   onClick={() => fetchTrailDetails(trail._id)}
                   style={isActive ? { borderColor: 'var(--color-accent)' } : {}}
                 >
+                  {showDelete && (
+                    <button
+                      type="button"
+                      aria-label={`Delete trail ${trail.name}`}
+                      title="Delete trail"
+                      disabled={deletingId === trail._id}
+                      onClick={(e) => handleDeleteTrail(trail, e)}
+                      className="absolute top-3 left-3 z-20 bg-bg-primary/90 border border-white/15 text-text-secondary hover:text-red-400 hover:border-red-400/50 rounded-sm p-2 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                   <div className="h-[180px] relative bg-bg-tertiary">
                     <img
                       src={formatPhotoUrl(trail.photoUrl)}
@@ -201,6 +265,18 @@ export default function TrailsPage() {
                         <Bookmark className="w-3.5 h-3.5 fill-white shrink-0" />
                         <span>Save Route Stops</span>
                       </button>
+                      {canDeleteTrail(selectedTrail, userId) && (
+                        <button
+                          type="button"
+                          className="bg-bg-tertiary text-text-secondary border border-white/10 rounded-sm px-3.5 py-2.5 text-xs font-semibold cursor-pointer transition-all duration-300 hover:text-red-400 hover:border-red-400/40 flex items-center gap-1.5 disabled:opacity-50"
+                          disabled={deletingId === selectedTrail._id}
+                          onClick={() => handleDeleteTrail(selectedTrail)}
+                          title="Delete this walking trail"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>{deletingId === selectedTrail._id ? 'Deleting…' : 'Delete'}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 

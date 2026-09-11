@@ -91,6 +91,7 @@ export interface Trail {
   area: string;
   photoUrl?: string;
   stops: Stop[];
+  createdBy?: string | null;
   isOfflinePending?: boolean;
 }
 
@@ -432,6 +433,16 @@ export async function createTrail(trailData: Partial<Trail>): Promise<Trail> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(trailData),
+  });
+}
+
+/**
+ * Deletes a walking trail owned by the current user (or legacy trails without an owner).
+ * @param id - Trail document id
+ */
+export async function deleteTrail(id: string): Promise<{ success: boolean; message: string }> {
+  return apiRequest<{ success: boolean; message: string }>(`/trails/${id}`, {
+    method: 'DELETE',
   });
 }
 

@@ -20,7 +20,7 @@ Mobile-first food discovery app for curated spots, dishes, walking trails, and s
 4. Frontend: `cd frontend && npm install && npm run dev`
 5. Admin: `cd admin-frontend && npm install && npm run dev`
 
-Set `JWT_SECRET`, `ADMIN_EMAIL`, and `ADMIN_MPIN` before any production deploy. Never commit real secrets.
+Set `JWT_SECRET` before any production deploy. Create admin accounts manually in MongoDB (see DEPLOYMENT.md). Never commit real secrets.
 
 ## Auth model
 

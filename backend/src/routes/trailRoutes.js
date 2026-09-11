@@ -92,4 +92,31 @@ router.post('/', authMiddleware, async (req, res, next) => {
   }
 });
 
+/**
+ * @route   DELETE /api/trails/:id
+ * @desc    Delete a walking trail (creator, or any authenticated user if creator unknown)
+ * @access  Private
+ */
+router.delete('/:id', authMiddleware, async (req, res, next) => {
+  try {
+    const trail = await Trail.findById(req.params.id);
+    if (!trail) {
+      return res.status(404).json({ error: { message: 'Trail not found' } });
+    }
+
+    const ownerId = trail.createdBy ? String(trail.createdBy) : null;
+    const requesterId = String(req.user._id);
+    if (ownerId && ownerId !== requesterId) {
+      return res.status(403).json({
+        error: { message: 'Only the trail creator can delete this walking trail' },
+      });
+    }
+
+    await trail.deleteOne();
+    res.json({ success: true, message: 'Trail deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

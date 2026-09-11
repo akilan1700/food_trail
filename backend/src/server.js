@@ -1,18 +1,16 @@
 // File: src/server.js
 // Description: Entry point for starting the Express server and connecting to MongoDB.
 // Author: Akilan M
-// Created: 2026-08-11T17:38:05+05:30
+// Updated: 2026-09-11
 
 require('dotenv').config();
 const app = require('./app');
 const connectDB = require('./config/db');
-const { seedAdminsFromConfig } = require('./services/adminSeedService');
 
 const PORT = process.env.PORT || 5001;
 
-// Connect database, seed admin accounts, and run server
-connectDB().then(async () => {
-  await seedAdminsFromConfig();
+// Connect database and run server (create admins manually in MongoDB — no auto-seed)
+connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`FoodTrail backend server running on port ${PORT}`);
   });

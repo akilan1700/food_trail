@@ -67,6 +67,32 @@ This guide provides end-to-end instructions for deploying the FoodTrail applicat
      mongodb+srv://foodtrail_prod_user:<password>@cluster0.abcde.mongodb.net/foodtrail?retryWrites=true&w=majority
      ```
 
+### Create admin manually
+
+Admins are **not** created on deploy. Insert one document into the `admins` collection.
+
+1. Generate a hashed MPIN (from `backend/`):
+
+```bash
+node -e "const { hashMpin } = require('./src/utils/mpinCrypto'); console.log(hashMpin('YOUR_4_OR_6_DIGIT_MPIN'));"
+```
+
+2. In MongoDB Atlas → Browse Collections → `foodtrail` → `admins`, run:
+
+```javascript
+db.admins.insertOne({
+  email: "admin@foodtrail.com",
+  name: "FoodTrail Administrator",
+  mpin: "PASTE_HASHED_MPIN_FROM_STEP_1",
+  role: "superadmin",
+  lastLogin: null,
+  createdAt: new Date(),
+  updatedAt: new Date()
+})
+```
+
+Use a 4- or 6-digit MPIN. Do not store plaintext MPINs in MongoDB.
+
 ---
 
 ## Step 2: Deploy Backend & Admin Panel on Render
@@ -88,9 +114,8 @@ The repository includes a ready-to-use [`render.yaml`](./render.yaml) Blueprint.
    - `CLOUDINARY_CLOUD_NAME`: Cloudinary cloud name.
    - `CLOUDINARY_API_KEY`: Cloudinary API key.
    - `CLOUDINARY_API_SECRET`: Cloudinary API secret.
-   - `ADMIN_EMAIL`: Initial admin email (e.g. `admin@foodtrail.com`).
-   - `ADMIN_MPIN`: Initial secure 4- or 6-digit admin MPIN (never commit real values).
 6. Click **Apply**.
+7. Create the first admin manually in MongoDB (see **Create admin manually** below). Deployments do **not** auto-seed admins.
 
 ---
 
@@ -119,8 +144,8 @@ The repository includes a ready-to-use [`render.yaml`](./render.yaml) Blueprint.
   | `CLOUDINARY_CLOUD_NAME` | *(your Cloudinary cloud name)* |
   | `CLOUDINARY_API_KEY` | *(your Cloudinary API key)* |
   | `CLOUDINARY_API_SECRET` | *(your Cloudinary API secret)* |
-  | `ADMIN_EMAIL` | `admin@foodtrail.com` |
-  | `ADMIN_MPIN` | *(Secure 4- or 6-digit admin MPIN)* |
+
+After the backend is up, create the first admin manually in MongoDB (see **Create admin manually** below).
 
 #### 2. Admin Frontend Static Site:
 - **Type**: Static Site

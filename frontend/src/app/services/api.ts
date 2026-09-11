@@ -208,15 +208,12 @@ export async function getDishes(): Promise<Dish[]> {
 }
 
 /**
- * Search dishes by query string and/or vibe tag filters.
+ * Search dishes by query string.
  */
-export async function searchDishes(query: string, vibes: string[]): Promise<Dish[]> {
+export async function searchDishes(query: string): Promise<Dish[]> {
   const params = new URLSearchParams();
   if (query.trim()) {
     params.append('q', query.trim());
-  }
-  if (vibes.length > 0) {
-    params.append('vibe', vibes.join(','));
   }
   return apiRequest<Dish[]>(`/dishes/search?${params.toString()}`);
 }

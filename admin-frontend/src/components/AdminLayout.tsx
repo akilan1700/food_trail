@@ -57,7 +57,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen flex bg-bg-primary text-text-primary">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden flex bg-bg-primary text-text-primary">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 border-r border-white/8 bg-bg-secondary/90 backdrop-blur-md shrink-0">
         {/* Brand Header */}
@@ -118,9 +118,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Top Header */}
-        <header className="sticky top-0 z-30 px-6 py-3.5 border-b border-white/8 bg-bg-secondary/70 backdrop-blur-md flex items-center justify-between">
+        <header className="sticky top-0 z-30 px-6 py-3.5 border-b border-white/8 bg-bg-secondary/70 backdrop-blur-md flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -178,8 +178,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         )}
 
-        {/* Page Content */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">{children}</main>
+        {/* Page Content — min-h-0 lets flex child scroll on desktop */}
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto min-h-0">{children}</main>
       </div>
     </div>
   );

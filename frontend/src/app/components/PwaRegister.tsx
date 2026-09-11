@@ -21,6 +21,17 @@ export default function PwaRegister() {
 
     const registerSW = async () => {
       try {
+        // Dev: never keep an SW — it caches HTML/JS and causes hydration mismatches after edits
+        if (process.env.NODE_ENV === 'development') {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+          if (typeof caches !== 'undefined') {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((key) => caches.delete(key)));
+          }
+          return;
+        }
+
         const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
 
         // Check if there is an update waiting

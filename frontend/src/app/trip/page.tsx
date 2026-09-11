@@ -380,14 +380,6 @@ export default function MyTripPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-1.5">
-                      {rest.vibeTags.map((v) => (
-                        <span key={v} className="text-[0.7rem] bg-white/4 text-text-muted px-1.5 py-0.5 rounded">
-                          {v}
-                        </span>
-                      ))}
-                    </div>
-
                     {editingPhotoRestId === rest._id && (
                       <div className="mt-4 border-t border-white/5 pt-4 animate-fade-in">
                         <PhotoUpload

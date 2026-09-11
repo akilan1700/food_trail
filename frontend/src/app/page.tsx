@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 // File: src/app/page.tsx
-// Description: Home search dashboard implementing dish-first search, dining spots directory, vibe filters, and community reviews.
+// Description: Home search dashboard implementing dish-first search, dining spots directory, and community reviews.
 // Author: Akilan M
 // Created: 2026-08-11T17:42:32+05:30
 
@@ -25,22 +25,9 @@ import { Search, Star, MapPin, Bookmark, Utensils, Plus, Store, ExternalLink, Me
 import AddDishModal from './components/AddDishModal';
 import ReviewModal from './components/ReviewModal';
 
-const AVAILABLE_VIBES = [
-  'Pet-friendly',
-  'Laptop-friendly',
-  'Outdoor garden',
-  'Vegan options',
-  'Indoor AC',
-  'Bakery',
-  'Vintage vibe',
-  'Eco-friendly',
-  'Instagrammable',
-];
-
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'dishes' | 'spots'>('dishes');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,19 +71,19 @@ export default function HomePage() {
     }
   };
 
-  // Perform search based on query and selected vibes
+  // Perform search based on query string
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setLoading(true);
 
     try {
       const [dishesData, restsData] = await Promise.all([
-        searchDishes(searchQuery, selectedVibes).catch(() => [] as Dish[]),
+        searchDishes(searchQuery).catch(() => [] as Dish[]),
         getRestaurants().catch(() => [] as Restaurant[]),
       ]);
       setDishes(dishesData);
 
-      // Filter spots by query and vibes client-side
+      // Filter spots by query client-side
       let filteredRests = restsData;
       if (searchQuery.trim()) {
         const q = searchQuery.trim().toLowerCase();
@@ -106,12 +93,6 @@ export default function HomePage() {
             r.area.toLowerCase().includes(q) ||
             (r.description && r.description.toLowerCase().includes(q))
         );
-      }
-      if (selectedVibes.length > 0) {
-        filteredRests = filteredRests.filter((r) => {
-          const restVibes = r.vibeTags.map((v) => v.toLowerCase());
-          return selectedVibes.every((v) => restVibes.includes(v.toLowerCase()));
-        });
       }
       setRestaurants(filteredRests);
     } catch (error) {
@@ -127,23 +108,6 @@ export default function HomePage() {
       loadInitialData();
     });
   }, []);
-
-  // Trigger search when vibe pills change
-  useEffect(() => {
-    if (loading && dishes.length === 0 && restaurants.length === 0) return;
-    Promise.resolve().then(() => {
-      handleSearch();
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVibes]);
-
-  // Toggle vibe filter pill
-  const toggleVibe = (vibe: string) => {
-    triggerHaptic(10);
-    setSelectedVibes((prev) =>
-      prev.includes(vibe) ? prev.filter((v) => v !== vibe) : [...prev, vibe]
-    );
-  };
 
   // Toggle restaurant in saved "My Trip" list
   const toggleSaveRestaurant = (restaurantId: string) => {
@@ -162,7 +126,7 @@ export default function HomePage() {
           Find {isClient && currentCity ? `the Best Food & Spots in ${currentCity}` : "Your Area's Best Food & Spots"}
         </h1>
         <p className="text-lg text-text-secondary max-w-[600px] mx-auto">
-          Explore signature dishes and all community-added dining spots with vibes, ratings, and location pins.
+          Explore signature dishes and all community-added dining spots with ratings and location pins.
         </p>
       </section>
 
@@ -187,28 +151,6 @@ export default function HomePage() {
             <span>Search</span>
           </button>
         </form>
-
-        {/* Vibe Filter Pills */}
-        <div className="mt-5">
-          <h2 className="text-[0.85rem] uppercase tracking-wider text-text-muted mb-3 text-left">Filter by Vibe & Need</h2>
-          <div className="flex flex-wrap gap-2">
-            {AVAILABLE_VIBES.map((vibe) => {
-              const isActive = selectedVibes.includes(vibe);
-              return (
-                <button
-                  key={vibe}
-                  type="button"
-                  className={`bg-bg-tertiary/30 border border-white/5 text-text-secondary px-4 py-2 rounded-full text-[0.85rem] font-medium cursor-pointer transition-all duration-300 select-none hover:bg-bg-tertiary/60 hover:text-text-primary ${
-                    isActive ? 'bg-accent border-accent text-white' : ''
-                  }`}
-                  onClick={() => toggleVibe(vibe)}
-                >
-                  {vibe}
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </section>
 
       {/* View Tabs: Dishes vs Dining Spots */}
@@ -337,14 +279,6 @@ export default function HomePage() {
                               <MapPin className="w-3.5 h-3.5 text-text-muted group-hover/pin:text-accent shrink-0 transition-colors" />
                               <span className="hover:underline decoration-dotted underline-offset-2">{rest.area}</span>
                             </a>
-                          </div>
-
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {rest.vibeTags.map((v) => (
-                              <span key={v} className="text-[0.7rem] bg-white/4 text-text-muted px-1.5 py-0.5 rounded">
-                                {v}
-                              </span>
-                            ))}
                           </div>
                         </div>
                       )}
@@ -492,17 +426,6 @@ export default function HomePage() {
                             <span className="underline decoration-dotted">Google Maps</span>
                           </a>
                         </div>
-
-                        {/* Vibe Tags */}
-                        {rest.vibeTags && rest.vibeTags.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {rest.vibeTags.map((v) => (
-                              <span key={v} className="text-[0.7rem] bg-white/4 text-text-muted px-2 py-0.5 rounded">
-                                {v}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </div>
 
                       {/* Action Buttons */}

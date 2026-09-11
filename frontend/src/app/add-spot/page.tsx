@@ -7,7 +7,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Navigation, Plus, X, ArrowLeft, Loader2, MapPin, ExternalLink, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Navigation, Plus, ArrowLeft, Loader2, MapPin, ExternalLink, CheckCircle2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 import { createRestaurant } from '../services/api';
@@ -28,8 +28,6 @@ export default function AddSpotPage() {
   const [area, setArea] = useState(detectedCity || '');
   const [latitude, setLatitude] = useState(detectedLat ? detectedLat.toFixed(6) : '');
   const [longitude, setLongitude] = useState(detectedLng ? detectedLng.toFixed(6) : '');
-  const [vibeInput, setVibeInput] = useState('');
-  const [vibeTags, setVibeTags] = useState<string[]>([]);
   const [photoUrl, setPhotoUrl] = useState('');
   
   const [loading, setLoading] = useState(false);
@@ -43,25 +41,6 @@ export default function AddSpotPage() {
     lat: number;
     lng: number;
   } | null>(null);
-
-  /**
-   * Adds a new vibe tag to the restaurant's vibe list.
-   */
-  const addVibeTag = (): void => {
-    const trimmed = vibeInput.trim();
-    if (trimmed && !vibeTags.includes(trimmed)) {
-      setVibeTags([...vibeTags, trimmed]);
-      setVibeInput('');
-    }
-  };
-
-  /**
-   * Removes an existing vibe tag from the list.
-   * @param tag - Tag name to remove.
-   */
-  const removeVibeTag = (tag: string): void => {
-    setVibeTags(vibeTags.filter((t) => t !== tag));
-  };
 
   /**
    * Captures the current GPS location pin in the background via HTML5 Geolocation API.
@@ -145,7 +124,6 @@ export default function AddSpotPage() {
         description: description.trim() || undefined,
         area: area.trim(),
         coordinates: [lng, lat], // Backend expects [longitude, latitude]
-        vibeTags,
         photoUrl: photoUrl || undefined,
       });
 
@@ -174,8 +152,6 @@ export default function AddSpotPage() {
     setArea(detectedCity || '');
     setLatitude('');
     setLongitude('');
-    setVibeInput('');
-    setVibeTags([]);
     setPhotoUrl('');
     setErrorMsg('');
     setCreatedSpot(null);
@@ -369,59 +345,6 @@ export default function AddSpotPage() {
               <div className="p-3 bg-bg-primary/40 border border-dashed border-white/10 rounded text-xs text-text-muted flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-text-muted shrink-0" />
                 <span>No location pin set yet. Click &ldquo;Pin Current Location&rdquo; to attach your coordinates.</span>
-              </div>
-            )}
-          </div>
-
-          {/* Vibe Tags */}
-          <div>
-            <label htmlFor="vibeInput" className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
-              Vibe Tags (e.g. Cozy, Pet-friendly, Outdoor)
-            </label>
-            <div className="flex gap-2 mb-3">
-              <input
-                id="vibeInput"
-                type="text"
-                disabled={loading}
-                placeholder="Add a vibe..."
-                value={vibeInput}
-                onChange={(e) => setVibeInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addVibeTag();
-                  }
-                }}
-                className="flex-grow bg-bg-tertiary/40 border border-white/8 rounded p-3 text-text-primary focus:outline-none focus:border-accent transition-all duration-300"
-              />
-              <button
-                type="button"
-                disabled={loading}
-                onClick={addVibeTag}
-                className="px-4 bg-bg-tertiary/60 border border-white/8 text-text-primary rounded font-semibold hover:bg-bg-tertiary transition-all duration-300"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Vibe tag list */}
-            {vibeTags.length > 0 && (
-              <div className="flex flex-wrap gap-2 p-3 bg-bg-tertiary/20 border border-white/5 rounded">
-                {vibeTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="flex items-center gap-1 bg-accent/10 border border-accent/20 text-accent text-xs font-semibold px-2.5 py-1 rounded-full animate-fade-in"
-                  >
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => removeVibeTag(tag)}
-                      className="hover:text-red-400 transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
               </div>
             )}
           </div>

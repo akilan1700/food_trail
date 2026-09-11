@@ -139,13 +139,6 @@ export default function SharedTripClient() {
                       {rest.description}
                     </p>
 
-                    <div className="flex flex-wrap gap-1.5">
-                      {rest.vibeTags.map((v) => (
-                        <span key={v} className="text-[0.7rem] bg-white/4 text-text-muted px-1.5 py-0.5 rounded">
-                          {v}
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 </div>
               );

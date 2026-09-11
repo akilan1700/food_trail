@@ -3,7 +3,7 @@
 // Author: Akilan M
 // Created: 2026-09-10T15:33:45+05:30
 
-const CACHE_NAME = 'foodtrail-cache-v4';
+const CACHE_NAME = 'foodtrail-cache-v5';
 
 // Core routes and static assets to precache during install
 const PRECACHE_ASSETS = [

@@ -173,19 +173,6 @@ export default function MySpotsPage() {
                     </p>
                   )}
 
-                  {/* Vibe Tags */}
-                  {spot.vibeTags && spot.vibeTags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {spot.vibeTags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2 py-0.5 rounded-full text-[0.65rem] font-semibold bg-white/5 text-text-secondary border border-white/5"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
 

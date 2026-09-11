@@ -1,11 +1,10 @@
 // File: src/models/User.js
 // Description: Mongoose schema representing the user profiles and settings configurations.
 // Author: Akilan M
-// Created: 2026-08-13T10:57:30+05:30
+// Updated: 2026-09-11
 
 const mongoose = require('mongoose');
-
-const crypto = require('crypto');
+const { hashMpin, compareMpin, isHashedMpin } = require('../utils/mpinCrypto');
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -40,34 +39,42 @@ const userSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Hash the MPIN before saving
 userSchema.pre('save', function (next) {
   if (!this.isModified('mpin')) {
     return next();
   }
   try {
-    const salt = crypto.randomBytes(16).toString('hex');
-    const mpinStr = String(this.mpin);
-    const hash = crypto.pbkdf2Sync(mpinStr, salt, 1000, 64, 'sha512').toString('hex');
-    this.mpin = `${salt}:${hash}`;
+    if (this._skipMpinHash || isHashedMpin(this.mpin)) {
+      return next();
+    }
+    this.mpin = hashMpin(this.mpin);
     next();
   } catch (err) {
     next(err);
   }
 });
 
-// Compare entered MPIN with stored hashed MPIN
+/**
+ * Compares entered MPIN with stored hashed MPIN.
+ * @param {string|number} candidateMpin - Plaintext MPIN
+ * @returns {boolean}
+ */
 userSchema.methods.compareMpin = function (candidateMpin) {
-  try {
-    const parts = this.mpin.split(':');
-    if (parts.length !== 2) return false;
-    const [salt, originalHash] = parts;
-    const mpinStr = String(candidateMpin);
-    const hash = crypto.pbkdf2Sync(mpinStr, salt, 1000, 64, 'sha512').toString('hex');
-    return hash === originalHash;
-  } catch (err) {
+  return compareMpin(candidateMpin, this.mpin);
+};
+
+/**
+ * Re-hashes MPIN to current algorithm if still on legacy iteration count.
+ * Call after successful login when compare succeeds.
+ * @returns {Promise<boolean>} True if rehash was saved
+ */
+userSchema.methods.upgradeMpinHashIfNeeded = async function (plainMpin) {
+  if (typeof this.mpin === 'string' && this.mpin.startsWith('v1:')) {
     return false;
   }
+  this.mpin = hashMpin(plainMpin);
+  await this.save();
+  return true;
 };
 
 module.exports = mongoose.model('User', userSchema);

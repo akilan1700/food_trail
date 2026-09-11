@@ -1,27 +1,49 @@
 // File: src/routes/authRoutes.js
-// Description: Express routes for user authentication (signup request, login request, verify, profile details, settings).
+// Description: User authentication routes (signup, login, OTP, profile, MPIN reset, account delete).
 // Author: Akilan M
-// Created: 2026-08-13T11:09:40+05:30
+// Updated: 2026-09-11
 
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Otp = require('../models/Otp');
 const UserProfile = require('../models/UserProfile');
+const Restaurant = require('../models/Restaurant');
+const Review = require('../models/Review');
 const authMiddleware = require('../middleware/authMiddleware');
 const { sendOtpEmail } = require('../services/emailService');
+const { getJwtSecret } = require('../utils/jwtSecret');
+const { hashMpin } = require('../utils/mpinCrypto');
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
 
-// Simple email regex validation helper
+const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
+const SESSION_EXPIRES = '7d';
+
 const isValidEmail = (email) => {
   return typeof email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
 /**
+ * Issues JWT and sets HttpOnly cookie.
+ * @param {import('express').Response} res
+ * @param {object} user
+ * @returns {string} token
+ */
+function issueSession(res, user) {
+  const token = jwt.sign({ userId: user._id }, getJwtSecret(), { expiresIn: SESSION_EXPIRES });
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: SESSION_MS,
+  });
+  return token;
+}
+
+/**
  * @route POST /api/auth/signup
- * @desc Sign up with email, name, and mpin
+ * @desc Sign up with email, name, and mpin (OTP required; MPIN stored hashed on OTP)
  */
 router.post('/signup', async (req, res, next) => {
   try {
@@ -41,15 +63,12 @@ router.post('/signup', async (req, res, next) => {
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email: trimmedEmail });
     if (existingUser) {
       return res.status(400).json({ error: { message: 'Email address is already registered' } });
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Clean old OTP codes for this signup
     await Otp.deleteMany({ email: trimmedEmail, type: 'signup' });
 
     const otpRecord = new Otp({
@@ -57,12 +76,11 @@ router.post('/signup', async (req, res, next) => {
       otp: otpCode,
       type: 'signup',
       name: name.trim(),
-      mpin: mpin,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      mpin: hashMpin(mpin),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
     await otpRecord.save();
 
-    // Send transaction email via Brevo
     await sendOtpEmail(trimmedEmail, otpCode, 'signup');
 
     res.status(200).json({
@@ -77,7 +95,7 @@ router.post('/signup', async (req, res, next) => {
 
 /**
  * @route POST /api/auth/login
- * @desc Log in directly with email and mpin
+ * @desc Log in with email and mpin
  */
 router.post('/login', async (req, res, next) => {
   try {
@@ -92,29 +110,21 @@ router.post('/login', async (req, res, next) => {
     }
 
     const trimmedEmail = email.trim().toLowerCase();
-
-    // Find user
     const user = await User.findOne({ email: trimmedEmail });
     if (!user) {
       return res.status(401).json({ error: { message: 'Invalid email or MPIN' } });
     }
 
-    // Verify MPIN
     const isMatch = user.compareMpin(mpin);
     if (!isMatch) {
       return res.status(401).json({ error: { message: 'Invalid email or MPIN' } });
     }
 
-    // Generate JWT token (1 hour session expiration)
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
+    if (typeof user.upgradeMpinHashIfNeeded === 'function') {
+      await user.upgradeMpinHashIfNeeded(mpin);
+    }
 
-    // Set secure HttpOnly cookie (auto-destroys after 1 hour)
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 60 * 60 * 1000, // 1 hour (matching token expiry)
-    });
+    const token = issueSession(res, user);
 
     let userProfile = await UserProfile.findOne({ userId: user._id });
     if (!userProfile) {
@@ -125,7 +135,7 @@ router.post('/login', async (req, res, next) => {
     const formattedUser = await formatUserResponse(user, userProfile);
     res.status(200).json({
       token,
-      expiresIn: 3600,
+      expiresIn: SESSION_MS / 1000,
       user: formattedUser,
     });
   } catch (error) {
@@ -135,7 +145,7 @@ router.post('/login', async (req, res, next) => {
 
 /**
  * @route POST /api/auth/verify
- * @desc Verify OTP and complete signup or login
+ * @desc Verify OTP and complete signup
  */
 router.post('/verify', async (req, res, next) => {
   try {
@@ -149,86 +159,57 @@ router.post('/verify', async (req, res, next) => {
       return res.status(400).json({ error: { message: 'OTP is required' } });
     }
 
-    if (!type || !['signup', 'login'].includes(type)) {
+    if (!type || type !== 'signup') {
       return res.status(400).json({ error: { message: 'Invalid verification type' } });
     }
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Find matching valid OTP
     const otpRecord = await Otp.findOne({
       email: trimmedEmail,
       otp: otp.trim(),
-      type,
+      type: 'signup',
     });
 
     if (!otpRecord) {
       return res.status(400).json({ error: { message: 'Invalid or expired verification code' } });
     }
 
-    let user;
-    let userProfile;
-
-    if (type === 'signup') {
-      const existingUser = await User.findOne({ email: trimmedEmail });
-      if (existingUser) {
-        await Otp.deleteMany({ email: trimmedEmail });
-        return res.status(400).json({ error: { message: 'Email address is already registered' } });
-      }
-
-      // Create new verified user
-      user = new User({
-        email: trimmedEmail,
-        name: otpRecord.name,
-        mpin: otpRecord.mpin,
-        settings: {
-          notificationsEnabled: true,
-          preferredTheme: 'Dark',
-        },
-      });
-      await user.save();
-
-      // Create profile details
-      userProfile = new UserProfile({
-        userId: user._id,
-        phoneNumber: '',
-        bio: '',
-        dateOfBirth: null,
-        city: '',
-        favoriteCuisine: '',
-      });
-      await userProfile.save();
-    } else {
-      user = await User.findOne({ email: trimmedEmail });
-      if (!user) {
-        return res.status(404).json({ error: { message: 'User not found' } });
-      }
-
-      userProfile = await UserProfile.findOne({ userId: user._id });
-      if (!userProfile) {
-        userProfile = new UserProfile({ userId: user._id });
-        await userProfile.save();
-      }
+    const existingUser = await User.findOne({ email: trimmedEmail });
+    if (existingUser) {
+      await Otp.deleteMany({ email: trimmedEmail });
+      return res.status(400).json({ error: { message: 'Email address is already registered' } });
     }
 
-    // Delete used OTP
+    const user = new User({
+      email: trimmedEmail,
+      name: otpRecord.name,
+      mpin: otpRecord.mpin,
+      settings: {
+        notificationsEnabled: true,
+        preferredTheme: 'Dark',
+      },
+    });
+    user._skipMpinHash = true;
+    await user.save();
+
+    const userProfile = new UserProfile({
+      userId: user._id,
+      phoneNumber: '',
+      bio: '',
+      dateOfBirth: null,
+      city: '',
+      favoriteCuisine: '',
+    });
+    await userProfile.save();
+
     await Otp.deleteMany({ email: trimmedEmail });
 
-    // Generate JWT (1 hour session expiration)
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '1h' });
-
-    // Set secure HttpOnly cookie (auto-destroys after 1 hour)
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 60 * 60 * 1000, // 1 hour (matching token expiry)
-    });
-
+    const token = issueSession(res, user);
     const formattedUser = await formatUserResponse(user, userProfile);
     res.status(200).json({
       token,
-      expiresIn: 3600,
+      expiresIn: SESSION_MS / 1000,
       user: formattedUser,
     });
   } catch (error) {
@@ -237,8 +218,135 @@ router.post('/verify', async (req, res, next) => {
 });
 
 /**
+ * @route POST /api/auth/resend-otp
+ * @desc Resend signup or reset_mpin OTP
+ */
+router.post('/resend-otp', async (req, res, next) => {
+  try {
+    const { email, type } = req.body;
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: { message: 'A valid email address is required' } });
+    }
+    const otpType = type === 'reset_mpin' ? 'reset_mpin' : 'signup';
+    const trimmedEmail = email.trim().toLowerCase();
+
+    const existing = await Otp.findOne({ email: trimmedEmail, type: otpType }).sort({ createdAt: -1 });
+    if (!existing) {
+      return res.status(400).json({ error: { message: 'No pending verification found for this email' } });
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    existing.otp = otpCode;
+    existing.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await existing.save();
+
+    await sendOtpEmail(trimmedEmail, otpCode, otpType === 'reset_mpin' ? 'reset' : 'signup');
+
+    res.status(200).json({ status: 'otp_resent', email: trimmedEmail, type: otpType });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route POST /api/auth/forgot-mpin
+ * @desc Start MPIN reset via email OTP
+ */
+router.post('/forgot-mpin', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: { message: 'A valid email address is required' } });
+    }
+    const trimmedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: trimmedEmail });
+
+    // Always return success-shaped response to avoid email enumeration
+    if (!user) {
+      return res.status(200).json({ status: 'otp_required', email: trimmedEmail, type: 'reset_mpin' });
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    await Otp.deleteMany({ email: trimmedEmail, type: 'reset_mpin' });
+    await Otp.create({
+      email: trimmedEmail,
+      otp: otpCode,
+      type: 'reset_mpin',
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+    await sendOtpEmail(trimmedEmail, otpCode, 'reset');
+
+    res.status(200).json({ status: 'otp_required', email: trimmedEmail, type: 'reset_mpin' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route POST /api/auth/reset-mpin
+ * @desc Complete MPIN reset with OTP + new MPIN
+ */
+router.post('/reset-mpin', async (req, res, next) => {
+  try {
+    const { email, otp, mpin } = req.body;
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: { message: 'A valid email address is required' } });
+    }
+    if (!otp) {
+      return res.status(400).json({ error: { message: 'OTP is required' } });
+    }
+    if (!mpin || typeof mpin !== 'string' || !/^\d{4}$|^\d{6}$/.test(mpin)) {
+      return res.status(400).json({ error: { message: 'MPIN must be a 4-digit or 6-digit number' } });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const otpRecord = await Otp.findOne({
+      email: trimmedEmail,
+      otp: String(otp).trim(),
+      type: 'reset_mpin',
+    });
+    if (!otpRecord) {
+      return res.status(400).json({ error: { message: 'Invalid or expired verification code' } });
+    }
+
+    const user = await User.findOne({ email: trimmedEmail });
+    if (!user) {
+      return res.status(404).json({ error: { message: 'User not found' } });
+    }
+
+    user.mpin = mpin;
+    await user.save();
+    await Otp.deleteMany({ email: trimmedEmail, type: 'reset_mpin' });
+
+    res.status(200).json({ message: 'MPIN updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route DELETE /api/auth/account
+ * @desc Delete authenticated user account and related profile/reviews
+ */
+router.delete('/account', authMiddleware, async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    await Review.deleteMany({ user: userId });
+    await UserProfile.deleteMany({ userId });
+    await User.findByIdAndDelete(userId);
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    });
+    res.status(200).json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * @route GET /api/auth/profile
- * @desc Get currently authenticated user profile
  */
 router.get('/profile', authMiddleware, async (req, res, next) => {
   try {
@@ -249,9 +357,7 @@ router.get('/profile', authMiddleware, async (req, res, next) => {
     }
 
     const formattedUser = await formatUserResponse(req.user, userProfile);
-    res.status(200).json({
-      user: formattedUser,
-    });
+    res.status(200).json({ user: formattedUser });
   } catch (error) {
     next(error);
   }
@@ -259,7 +365,6 @@ router.get('/profile', authMiddleware, async (req, res, next) => {
 
 /**
  * @route PUT /api/auth/profile
- * @desc Update user profile details / settings
  */
 router.put('/profile', authMiddleware, async (req, res, next) => {
   try {
@@ -312,9 +417,7 @@ router.put('/profile', authMiddleware, async (req, res, next) => {
     }
 
     const formattedUser = await formatUserResponse(user, userProfile);
-    res.status(200).json({
-      user: formattedUser,
-    });
+    res.status(200).json({ user: formattedUser });
   } catch (error) {
     next(error);
   }
@@ -322,7 +425,6 @@ router.put('/profile', authMiddleware, async (req, res, next) => {
 
 /**
  * @route POST /api/auth/profile/complete-walk
- * @desc Mark a walking food trail as completed
  */
 router.post('/profile/complete-walk', authMiddleware, async (req, res, next) => {
   try {
@@ -333,10 +435,8 @@ router.post('/profile/complete-walk', authMiddleware, async (req, res, next) => 
       userProfile = new UserProfile({ userId: req.user._id });
     }
 
-    // Increment overall completed walks count
     userProfile.walksCompletedCount = (userProfile.walksCompletedCount || 0) + 1;
 
-    // Add trailId to completedTrails list if a predefined trail is completed
     if (trailId) {
       if (!userProfile.completedTrails) {
         userProfile.completedTrails = [];
@@ -359,10 +459,11 @@ router.post('/profile/complete-walk', authMiddleware, async (req, res, next) => 
 });
 
 /**
- * Helper to dynamically format user response payload with real database-backed statistics.
+ * Formats user response with profile statistics.
+ * @param {object} user
+ * @param {object} userProfile
  */
 async function formatUserResponse(user, userProfile) {
-  const Restaurant = require('../models/Restaurant');
   const cafesDiscovered = await Restaurant.countDocuments({ createdBy: user._id });
   const walksCompleted = userProfile ? (userProfile.walksCompletedCount || 0) : 0;
 
@@ -386,7 +487,6 @@ async function formatUserResponse(user, userProfile) {
 
 /**
  * @route POST /api/auth/logout
- * @desc Log out user by clearing the authentication cookie
  */
 router.post('/logout', (req, res) => {
   res.clearCookie('token', {

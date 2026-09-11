@@ -1,7 +1,7 @@
 // File: src/models/Otp.js
-// Description: Mongoose schema representing the verification OTPs with auto-expiring TTL configuration.
+// Description: Mongoose schema representing verification OTPs with auto-expiring TTL; MPIN stored hashed only.
 // Author: Akilan M
-// Created: 2026-08-13T10:59:15+05:30
+// Updated: 2026-09-11
 
 const mongoose = require('mongoose');
 
@@ -19,20 +19,21 @@ const otpSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['signup', 'login'],
+    enum: ['signup', 'reset_mpin'],
     required: [true, 'OTP type is required'],
   },
   name: {
     type: String,
     trim: true,
   },
+  /** Pre-hashed MPIN (never plaintext). Used for signup completion. */
   mpin: {
     type: String,
   },
   expiresAt: {
     type: Date,
     required: [true, 'Expiration time is required'],
-    index: { expires: 0 }, // Document will be deleted at expiresAt time
+    index: { expires: 0 },
   },
 }, {
   timestamps: true,

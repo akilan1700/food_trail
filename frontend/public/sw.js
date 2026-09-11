@@ -3,24 +3,24 @@
 // Author: Akilan M
 // Created: 2026-09-10T15:33:45+05:30
 
-const CACHE_NAME = 'foodtrail-cache-v5';
+const CACHE_NAME = 'foodtrail-cache-v6';
 
-// Core routes and static assets to precache during install
+// Core routes and static assets to precache during install (trailingSlash-aligned)
 const PRECACHE_ASSETS = [
   '/',
   '/manifest.json',
-  '/favicon.ico',
+  '/favicon.svg',
   '/logo.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  '/trails',
-  '/trip',
-  '/my-spots',
-  '/add-spot',
-  '/profile',
-  '/settings',
-  '/login',
-  '/signup',
+  '/trails/',
+  '/trip/',
+  '/my-spots/',
+  '/add-spot/',
+  '/profile/',
+  '/settings/',
+  '/login/',
+  '/signup/',
 ];
 
 // Service Worker Installation

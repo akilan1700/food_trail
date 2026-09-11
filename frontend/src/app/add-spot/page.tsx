@@ -2,27 +2,35 @@
 // Description: User-facing page to add new dining spots with background location pin capture and Google Maps integration.
 // Author: Akilan M
 // Created: 2026-08-12T17:46:00+05:30
+// Updated: 2026-09-11
 
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navigation, Plus, ArrowLeft, Loader2, MapPin, ExternalLink, CheckCircle2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 import { createRestaurant } from '../services/api';
 import { useAppSelector } from '../services/hooks';
-import { selectDetectedCity, selectDetectedLatitude, selectDetectedLongitude } from '../services/authSlice';
+import {
+  selectCurrentUser,
+  selectDetectedCity,
+  selectDetectedLatitude,
+  selectDetectedLongitude,
+} from '../services/authSlice';
 import { triggerHaptic } from '../services/usePwa';
 import PhotoUpload from '../components/PhotoUpload';
 import AddDishModal from '../components/AddDishModal';
+import LoadingScreen from '../components/LoadingScreen';
 
 export default function AddSpotPage() {
   const router = useRouter();
+  const user = useAppSelector(selectCurrentUser);
   const detectedCity = useAppSelector(selectDetectedCity);
   const detectedLat = useAppSelector(selectDetectedLatitude);
   const detectedLng = useAppSelector(selectDetectedLongitude);
-  
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [area, setArea] = useState(detectedCity || '');
@@ -41,6 +49,16 @@ export default function AddSpotPage() {
     lat: number;
     lng: number;
   } | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      router.replace('/login');
+    }
+  }, [user, router]);
+
+  if (!user) {
+    return <LoadingScreen />;
+  }
 
   /**
    * Captures the current GPS location pin in the background via HTML5 Geolocation API.

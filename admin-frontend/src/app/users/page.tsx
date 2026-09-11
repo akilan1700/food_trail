@@ -2,6 +2,7 @@
 // Description: Administrator view for monitoring registered platform users, profile activity, and engagement.
 // Author: Akilan M
 // Created: 2026-09-10T11:29:00+05:30
+// Updated: 2026-09-11
 
 'use client';
 

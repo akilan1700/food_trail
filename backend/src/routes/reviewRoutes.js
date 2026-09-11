@@ -43,7 +43,7 @@ router.get('/', async (req, res, next) => {
     }
 
     const reviews = await Review.find(filter)
-      .populate('user', 'name email')
+      .populate('user', 'name')
       .sort({ createdAt: -1 });
 
     res.json(reviews);
@@ -132,7 +132,7 @@ router.post('/', authMiddleware, async (req, res, next) => {
       await recalculateRating('dish', dishId);
     }
 
-    const populatedReview = await Review.findById(review._id).populate('user', 'name email');
+    const populatedReview = await Review.findById(review._id).populate('user', 'name');
 
     res.status(201).json(populatedReview);
   } catch (error) {

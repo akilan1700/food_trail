@@ -13,8 +13,10 @@ const Restaurant = require('../src/models/Restaurant');
 const Dish = require('../src/models/Dish');
 const { seedAdminsFromConfig } = require('../src/services/adminSeedService');
 
+const { getJwtSecret } = require('../src/utils/jwtSecret');
+
 const TEST_MONGO_URI = 'mongodb://localhost:27017/foodtrail_test';
-const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
+const JWT_SECRET = getJwtSecret();
 
 beforeAll(async () => {
   if (mongoose.connection.readyState === 0) {
@@ -92,15 +94,19 @@ describe('Admin Authentication & Management API Tests', () => {
     await sampleDish.save();
   });
 
-  // 1. JSON Seeding Service Test
-  test('seedAdminsFromConfig should upsert admin accounts from JSON', async () => {
+  // 1. Env seeding service test
+  test('seedAdminsFromConfig should upsert admin accounts from env', async () => {
     await Admin.deleteMany({});
+    process.env.ADMIN_EMAIL = 'seeded-admin@foodtrail.com';
+    process.env.ADMIN_MPIN = '654321';
     const count = await seedAdminsFromConfig();
     expect(count).toBeGreaterThan(0);
 
-    const seeded = await Admin.findOne({ email: 'admin@foodtrail.com' });
+    const seeded = await Admin.findOne({ email: 'seeded-admin@foodtrail.com' });
     expect(seeded).not.toBeNull();
-    expect(seeded.compareMpin('123456')).toBe(true);
+    expect(seeded.compareMpin('654321')).toBe(true);
+    delete process.env.ADMIN_EMAIL;
+    delete process.env.ADMIN_MPIN;
   });
 
   // 2. Admin Login Tests
@@ -307,8 +313,9 @@ describe('Admin Authentication & Management API Tests', () => {
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.length).toBe(1);
-    expect(res.body[0].email).toBe('user@foodtrail.com');
-    expect(res.body[0].mpin).toBeUndefined(); // MPIN sanitized
+    const users = Array.isArray(res.body) ? res.body : res.body.data;
+    expect(users.length).toBe(1);
+    expect(users[0].email).toBe('user@foodtrail.com');
+    expect(users[0].mpin).toBeUndefined();
   });
 });

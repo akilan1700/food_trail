@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "FoodTrail - Walking Food Trails & Dish Search",
+  "name": "FoodTrail — Walkable Food Trails & Dish Search",
   "short_name": "FoodTrail",
-  "description": "Walkable Food Trails and Dish-First search in your area.",
+  "description": "Discover signature dishes and curated walkable food trails near you. Offline-ready PWA for tourists and locals.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -13,7 +13,7 @@
   ],
   "orientation": "portrait-primary",
   "background_color": "#0b0f19",
-  "theme_color": "#0b0f19",
+  "theme_color": "#f18024",
   "categories": [
     "food",
     "travel",
@@ -39,7 +39,7 @@
       "name": "Walking Trails",
       "short_name": "Trails",
       "description": "Discover curated walking food routes",
-      "url": "/trails?source=pwa_shortcut",
+      "url": "/trails/?source=pwa_shortcut",
       "icons": [
         {
           "src": "/icons/icon-192.png",
@@ -52,7 +52,7 @@
       "name": "My Trip",
       "short_name": "My Trip",
       "description": "View and manage your saved food trail",
-      "url": "/trip?source=pwa_shortcut",
+      "url": "/trip/?source=pwa_shortcut",
       "icons": [
         {
           "src": "/icons/icon-192.png",
@@ -65,7 +65,7 @@
       "name": "Add Spot",
       "short_name": "Add Spot",
       "description": "Pin and add a new food spot",
-      "url": "/add-spot?source=pwa_shortcut",
+      "url": "/add-spot/?source=pwa_shortcut",
       "icons": [
         {
           "src": "/icons/icon-192.png",
@@ -76,6 +76,12 @@
     }
   ],
   "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",

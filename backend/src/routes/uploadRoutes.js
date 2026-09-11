@@ -1,27 +1,24 @@
 // File: src/routes/uploadRoutes.js
-// Description: Express routing endpoints for uploading and deleting image assets organized per user.
+// Description: Authenticated image upload/delete endpoints organized per user or admin folder.
 // Author: Akilan M
-// Created: 2026-08-12T14:36:00+05:30
+// Updated: 2026-09-11
 
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const jwt = require('jsonwebtoken');
 const {
   uploadBufferToCloudinary,
   deleteImageFromCloudinary,
   isCloudinaryConfigured,
 } = require('../services/cloudinaryService');
+const authOrAdminMiddleware = require('../middleware/authOrAdminMiddleware');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
-
-// Multer memory storage configuration (buffer streamed directly to cloud storage)
 const storage = multer.memoryStorage();
 
 const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limit size to 5MB
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const filetypes = /jpeg|jpg|png|webp/;
     const mimetype = filetypes.test(file.mimetype);
@@ -35,62 +32,41 @@ const upload = multer({
 });
 
 /**
- * Resolves the destination Cloudinary folder for each user.
- * Organizes assets into foodtrail/users/<userId>/[subfolder] or foodtrail/public/[subfolder].
- * @param {Object} req - Express request object.
- * @returns {string} Target folder path.
+ * Resolves Cloudinary folder from authenticated identity only (no body userId spoofing).
+ * @param {import('express').Request} req
+ * @returns {string}
  */
 function resolveUserFolder(req) {
-  let userId = null;
+  let ownerId = null;
+  let prefix = 'users';
 
-  // 1. Check if user is already attached to request
-  if (req.user && req.user._id) {
-    userId = req.user._id.toString();
+  if (req.admin && req.admin._id) {
+    ownerId = req.admin._id.toString();
+    prefix = 'admins';
+  } else if (req.user && req.user._id) {
+    ownerId = req.user._id.toString();
+    prefix = 'users';
   }
 
-  // 2. Check token from cookie or Authorization header
-  if (!userId) {
-    let token = null;
-    if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
-    } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
+  const subfolder =
+    req.body && req.body.folder ? String(req.body.folder).replace(/[^a-zA-Z0-9_-]/g, '') : '';
 
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        if (decoded && decoded.userId) {
-          userId = decoded.userId.toString();
-        }
-      } catch {
-        // Ignore invalid token and fallback
-      }
-    }
+  if (!ownerId) {
+    return subfolder ? `foodtrail/public/${subfolder}` : 'foodtrail/public';
   }
 
-  // 3. Check explicit userId from form data
-  if (!userId && req.body && req.body.userId) {
-    userId = String(req.body.userId).trim();
-  }
-
-  // Optional category subfolder (e.g. spots, dishes, trails)
-  const subfolder = req.body && req.body.folder ? String(req.body.folder).replace(/[^a-zA-Z0-9_-]/g, '') : '';
-
-  if (userId) {
-    const cleanUserId = userId.replace(/[^a-zA-Z0-9_-]/g, '_');
-    return subfolder ? `foodtrail/users/${cleanUserId}/${subfolder}` : `foodtrail/users/${cleanUserId}`;
-  }
-
-  return subfolder ? `foodtrail/public/${subfolder}` : 'foodtrail/public';
+  const cleanId = ownerId.replace(/[^a-zA-Z0-9_-]/g, '_');
+  return subfolder
+    ? `foodtrail/${prefix}/${cleanId}/${subfolder}`
+    : `foodtrail/${prefix}/${cleanId}`;
 }
 
 /**
  * @route   POST /api/upload
- * @desc    Upload an image organized into a user-specific folder structure
- * @access  Public
+ * @desc    Upload an image (user or admin auth required)
+ * @access  Private
  */
-router.post('/', upload.single('photo'), async (req, res, next) => {
+router.post('/', authOrAdminMiddleware, upload.single('photo'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: { message: 'No photo file provided' } });
@@ -104,9 +80,7 @@ router.post('/', upload.single('photo'), async (req, res, next) => {
       });
     }
 
-    // Determine user-specific target folder
     const targetFolder = resolveUserFolder(req);
-
     const fileUrl = await uploadBufferToCloudinary(req.file.buffer, targetFolder);
     return res.status(201).json({
       success: true,
@@ -121,10 +95,10 @@ router.post('/', upload.single('photo'), async (req, res, next) => {
 
 /**
  * @route   DELETE /api/upload
- * @desc    Delete an uploaded image
- * @access  Public
+ * @desc    Delete an uploaded image (auth required)
+ * @access  Private
  */
-router.delete('/', async (req, res, next) => {
+router.delete('/', authOrAdminMiddleware, async (req, res, next) => {
   try {
     const photoUrl = req.body?.photoUrl || req.query?.photoUrl || req.body?.fileId;
     if (!photoUrl) {

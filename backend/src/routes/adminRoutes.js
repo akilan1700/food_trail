@@ -11,10 +11,15 @@ const User = require('../models/User');
 const Restaurant = require('../models/Restaurant');
 const Dish = require('../models/Dish');
 const Trail = require('../models/Trail');
+const Review = require('../models/Review');
+const UserProfile = require('../models/UserProfile');
 const adminMiddleware = require('../middleware/adminMiddleware');
+const { getJwtSecret } = require('../utils/jwtSecret');
+const { parsePagination, sendListResponse } = require('../utils/pagination');
+const { recalculateRating } = require('../services/reviewService');
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
+const ADMIN_SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * @route   POST /api/admin/login
@@ -49,7 +54,10 @@ router.post('/login', async (req, res, next) => {
     admin.lastLogin = new Date();
     await admin.save();
 
-    // Sign admin token (1 hour session expiration)
+    if (typeof admin.upgradeMpinHashIfNeeded === 'function') {
+      await admin.upgradeMpinHashIfNeeded(mpin);
+    }
+
     const token = jwt.sign(
       {
         adminId: admin._id,
@@ -57,21 +65,20 @@ router.post('/login', async (req, res, next) => {
         email: admin.email,
         name: admin.name,
       },
-      JWT_SECRET,
-      { expiresIn: '1h' }
+      getJwtSecret(),
+      { expiresIn: '7d' }
     );
 
-    // Set secure cookie (auto-destroys after 1 hour)
     res.cookie('admin_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 60 * 60 * 1000, // 1 hour
+      maxAge: ADMIN_SESSION_MS,
     });
 
     res.status(200).json({
       token,
-      expiresIn: 3600,
+      expiresIn: ADMIN_SESSION_MS / 1000,
       admin: {
         id: admin._id,
         email: admin.email,
@@ -284,10 +291,10 @@ router.delete('/restaurants/:id', adminMiddleware, async (req, res, next) => {
       return res.status(404).json({ error: { message: 'Restaurant not found.' } });
     }
 
-    // Cascade delete associated dishes
     await Dish.deleteMany({ restaurantId: id });
+    await Review.deleteMany({ restaurantId: id });
 
-    res.status(200).json({ message: 'Restaurant and its associated dishes deleted successfully.' });
+    res.status(200).json({ message: 'Restaurant, dishes, and reviews deleted successfully.' });
   } catch (error) {
     next(error);
   }
@@ -460,13 +467,148 @@ router.delete('/dishes/:id', adminMiddleware, async (req, res, next) => {
 
 /**
  * @route   GET /api/admin/users
- * @desc    Get list of registered users from User collection
+ * @desc    Get registered users enriched with profile fields (paginated)
  * @access  Admin Private
  */
 router.get('/users', adminMiddleware, async (req, res, next) => {
   try {
-    const users = await User.find().select('-mpin').sort({ createdAt: -1 });
-    res.status(200).json(users);
+    const { page, limit, skip, paginate } = parsePagination(req.query);
+    const [users, total] = await Promise.all([
+      User.find().select('-mpin').sort({ createdAt: -1 }).skip(skip).limit(limit),
+      User.countDocuments(),
+    ]);
+
+    const userIds = users.map((u) => u._id);
+    const profiles = await UserProfile.find({ userId: { $in: userIds } });
+    const profileByUser = new Map(profiles.map((p) => [String(p.userId), p]));
+
+    const enriched = users.map((u) => {
+      const profile = profileByUser.get(String(u._id));
+      return {
+        ...u.toObject(),
+        profile: {
+          city: profile?.city || '',
+          favoriteCuisine: profile?.favoriteCuisine || '',
+          walksCompletedCount: profile?.walksCompletedCount || 0,
+        },
+      };
+    });
+
+    sendListResponse(res, enriched, { page, limit, total, paginate });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   GET /api/admin/trails
+ * @access  Admin Private
+ */
+router.get('/trails', adminMiddleware, async (req, res, next) => {
+  try {
+    const { page, limit, skip, paginate } = parsePagination(req.query);
+    const [trails, total] = await Promise.all([
+      Trail.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Trail.countDocuments(),
+    ]);
+    sendListResponse(res, trails, { page, limit, total, paginate });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   PUT /api/admin/trails/:id
+ * @access  Admin Private
+ */
+router.put('/trails/:id', adminMiddleware, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: { message: 'Invalid trail ID.' } });
+    }
+    const { name, description, estimatedDuration, distance, area, photoUrl, stops } = req.body;
+    const update = {};
+    if (name !== undefined) update.name = String(name).trim();
+    if (description !== undefined) update.description = description;
+    if (estimatedDuration !== undefined) update.estimatedDuration = Number(estimatedDuration);
+    if (distance !== undefined) update.distance = Number(distance);
+    if (area !== undefined) update.area = String(area).trim();
+    if (photoUrl !== undefined) update.photoUrl = photoUrl;
+    if (Array.isArray(stops)) update.stops = stops;
+
+    const trail = await Trail.findByIdAndUpdate(id, update, { new: true, runValidators: true });
+    if (!trail) {
+      return res.status(404).json({ error: { message: 'Trail not found.' } });
+    }
+    res.status(200).json(trail);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   DELETE /api/admin/trails/:id
+ * @access  Admin Private
+ */
+router.delete('/trails/:id', adminMiddleware, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: { message: 'Invalid trail ID.' } });
+    }
+    const trail = await Trail.findByIdAndDelete(id);
+    if (!trail) {
+      return res.status(404).json({ error: { message: 'Trail not found.' } });
+    }
+    res.status(200).json({ message: 'Trail deleted successfully.' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   GET /api/admin/reviews
+ * @access  Admin Private
+ */
+router.get('/reviews', adminMiddleware, async (req, res, next) => {
+  try {
+    const { page, limit, skip, paginate } = parsePagination(req.query);
+    const [reviews, total] = await Promise.all([
+      Review.find()
+        .populate('user', 'name')
+        .populate('restaurantId', 'name')
+        .populate('dishId', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Review.countDocuments(),
+    ]);
+    sendListResponse(res, reviews, { page, limit, total, paginate });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   DELETE /api/admin/reviews/:id
+ * @access  Admin Private
+ */
+router.delete('/reviews/:id', adminMiddleware, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: { message: 'Invalid review ID.' } });
+    }
+    const review = await Review.findById(id);
+    if (!review) {
+      return res.status(404).json({ error: { message: 'Review not found.' } });
+    }
+    const { restaurantId, dishId } = review;
+    await Review.findByIdAndDelete(id);
+    if (restaurantId) await recalculateRating('restaurant', restaurantId);
+    if (dishId) await recalculateRating('dish', dishId);
+    res.status(200).json({ message: 'Review deleted successfully.' });
   } catch (error) {
     next(error);
   }

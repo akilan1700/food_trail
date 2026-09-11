@@ -1,7 +1,7 @@
 // File: src/app/services/authSlice.ts
-// Description: Redux Slice managing user session state, local storage persistence, and profile setting preferences.
+// Description: Redux Slice managing user session state with cookie + Bearer fallback for cross-origin API calls.
 // Author: Akilan M
-// Created: 2026-08-13T11:21:40+05:30
+// Updated: 2026-09-11
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
@@ -23,12 +23,15 @@ export interface UserProfileDetails {
 export interface User {
   id: string;
   _id?: string;
-  email: string;
+  email?: string;
   name: string;
   settings: UserSettings;
   profile: UserProfileDetails;
   createdAt: string;
 }
+
+/** Client session length aligned with backend cookie (7 days). */
+const DEFAULT_SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface AuthState {
   user: User | null;
@@ -41,7 +44,10 @@ interface AuthState {
   detectedLongitude: number | null;
 }
 
-// Safer localStorage check to avoid server-side execution errors in Next.js
+/**
+ * Builds initial auth state from localStorage (user + optional Bearer fallback token).
+ * @returns AuthState
+ */
 const getInitialState = (): AuthState => {
   if (typeof window === 'undefined') {
     return {
@@ -61,7 +67,6 @@ const getInitialState = (): AuthState => {
   const isExpired = sessionExpiresAt ? Date.now() >= sessionExpiresAt : false;
 
   if (isExpired) {
-    // Auto-destroy expired session immediately
     localStorage.removeItem('foodtrail_user');
     localStorage.removeItem('foodtrail_token');
     localStorage.removeItem('foodtrail_session_expires_at');
@@ -70,11 +75,14 @@ const getInitialState = (): AuthState => {
   const token = isExpired ? null : localStorage.getItem('foodtrail_token');
   const userJson = isExpired ? null : localStorage.getItem('foodtrail_user');
   const detectedCity = localStorage.getItem('foodtrail_detected_city');
-  const detectedLatitude = localStorage.getItem('foodtrail_detected_latitude') ? Number(localStorage.getItem('foodtrail_detected_latitude')) : null;
-  const detectedLongitude = localStorage.getItem('foodtrail_detected_longitude') ? Number(localStorage.getItem('foodtrail_detected_longitude')) : null;
-  
-  let user: User | null = null;
+  const detectedLatitude = localStorage.getItem('foodtrail_detected_latitude')
+    ? Number(localStorage.getItem('foodtrail_detected_latitude'))
+    : null;
+  const detectedLongitude = localStorage.getItem('foodtrail_detected_longitude')
+    ? Number(localStorage.getItem('foodtrail_detected_longitude'))
+    : null;
 
+  let user: User | null = null;
   if (userJson) {
     try {
       user = JSON.parse(userJson);
@@ -116,12 +124,11 @@ const authSlice = createSlice({
     },
     setCredentials(state, action: PayloadAction<{ user: User; token?: string; expiresAt?: number }>) {
       const { user, token, expiresAt } = action.payload;
-      const sessionExpiry = expiresAt || (Date.now() + 60 * 60 * 1000); // 1 hour session duration
+      const sessionExpiry = expiresAt || Date.now() + DEFAULT_SESSION_MS;
 
       state.user = user;
-      if (token !== undefined) {
-        state.token = token || null;
-      }
+      // Keep Bearer as cross-origin fallback alongside HttpOnly cookie
+      state.token = token || null;
       state.sessionExpiresAt = sessionExpiry;
       state.error = null;
 
@@ -129,6 +136,8 @@ const authSlice = createSlice({
         localStorage.setItem('foodtrail_user', JSON.stringify(user));
         if (token) {
           localStorage.setItem('foodtrail_token', token);
+        } else {
+          localStorage.removeItem('foodtrail_token');
         }
         localStorage.setItem('foodtrail_session_expires_at', String(sessionExpiry));
       }
@@ -150,7 +159,7 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         state.sessionExpiresAt = null;
-        state.error = 'Session expired after 1 hour. Please sign in again.';
+        state.error = 'Session expired. Please sign in again.';
 
         if (typeof window !== 'undefined') {
           localStorage.removeItem('foodtrail_user');
@@ -197,7 +206,15 @@ const authSlice = createSlice({
   },
 });
 
-export const { setDetectedLocation, setCredentials, clearCredentials, checkSessionExpiry, updateUserSettings, setLoading, setError } = authSlice.actions;
+export const {
+  setDetectedLocation,
+  setCredentials,
+  clearCredentials,
+  checkSessionExpiry,
+  updateUserSettings,
+  setLoading,
+  setError,
+} = authSlice.actions;
 
 export const selectCurrentUser = (state: { auth: AuthState }) => state.auth.user;
 export const selectAuthToken = (state: { auth: AuthState }) => state.auth.token;

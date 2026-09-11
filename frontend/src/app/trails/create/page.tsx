@@ -2,6 +2,7 @@
 // Description: Page route for constructing and saving custom curated walking food trails.
 // Author: Akilan M
 // Created: 2026-08-12T17:23:00+05:30
+// Updated: 2026-09-11
 
 'use client';
 
@@ -9,13 +10,25 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getRestaurants, Restaurant } from '../../services/api';
 import TrailCreator from '../../components/TrailCreator';
+import LoadingScreen from '../../components/LoadingScreen';
+import { useAppSelector } from '../../services/hooks';
+import { selectCurrentUser } from '../../services/authSlice';
 
 export default function CreateTrailPage() {
   const router = useRouter();
+  const user = useAppSelector(selectCurrentUser);
   const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) {
+      router.replace('/login');
+    }
+  }, [user, router]);
+
+  useEffect(() => {
+    if (!user) return;
+
     const loadRestaurants = async () => {
       try {
         const data = await getRestaurants();
@@ -27,7 +40,7 @@ export default function CreateTrailPage() {
       }
     };
     loadRestaurants();
-  }, []);
+  }, [user]);
 
   const handleSuccess = () => {
     alert('Walking Trail created successfully!');
@@ -37,6 +50,10 @@ export default function CreateTrailPage() {
   const handleCancel = () => {
     router.push('/trails');
   };
+
+  if (!user) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="max-w-[900px] mx-auto animate-fade-in">

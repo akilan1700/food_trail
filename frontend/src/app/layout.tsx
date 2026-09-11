@@ -2,6 +2,7 @@
 // Description: Root Layout template containing HTML shell, PWA metadata, navigation, install banner, and service worker registration.
 // Author: Akilan M
 // Created: 2026-08-11T17:42:17+05:30
+// Updated: 2026-09-11
 
 import type { Metadata, Viewport } from 'next';
 import PwaRegister from './components/PwaRegister';
@@ -15,8 +16,6 @@ import './globals.css';
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#0b0f19' },
@@ -31,7 +30,7 @@ export const metadata: Metadata = {
   applicationName: 'FoodTrail',
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
       { url: '/logo.svg', type: 'image/svg+xml' },
       { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -40,7 +39,7 @@ export const metadata: Metadata = {
       { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    shortcut: ['/favicon.ico'],
+    shortcut: ['/favicon.svg'],
   },
   appleWebApp: {
     capable: true,
@@ -64,7 +63,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         {/* Cross-platform PWA / mobile chrome (Android + iOS + others) */}
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#0b0f19" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="FoodTrail" />
@@ -72,6 +71,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="FoodTrail" />
         <meta name="format-detection" content="telephone=no" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body>

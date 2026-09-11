@@ -2,6 +2,7 @@
 // Description: Typed API client service for the Standalone Admin Panel communicating with the Express backend.
 // Author: Akilan M
 // Created: 2026-09-10T11:27:20+05:30
+// Updated: 2026-09-11
 
 export interface AdminUser {
   id: string;
@@ -69,14 +70,48 @@ export interface PlatformUser {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 /**
- * Generic administrative fetch wrapper handling JWT authentication token injection.
+ * Normalizes list endpoints that may return a bare array or a paginated `{ data }` envelope.
+ * @param payload - Array or paginated response body.
+ * @returns Flat array of items.
+ */
+export function unwrapList<T>(payload: T[] | { data: T[] } | null | undefined): T[] {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.data)) return payload.data;
+  return [];
+}
+
+export interface AdminTrail {
+  _id: string;
+  name: string;
+  description?: string;
+  estimatedDuration?: number;
+  distance?: number;
+  area?: string;
+  photoUrl?: string;
+  stops?: Array<{ order?: number; restaurantId?: string; description?: string }>;
+  createdAt?: string;
+}
+
+export interface AdminReview {
+  _id: string;
+  user?: { _id?: string; name?: string } | string;
+  restaurantId?: { _id?: string; name?: string } | string | null;
+  dishId?: { _id?: string; name?: string } | string | null;
+  rating: number;
+  comment?: string;
+  createdAt?: string;
+}
+
+/**
+ * Generic administrative fetch wrapper using cookie credentials (optional legacy Bearer).
  * @param endpoint - The API endpoint path.
  * @param options - Request options.
  */
 async function adminFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
   
-  // Check 1-hour session expiry
+  // Check session expiry
   if (typeof window !== 'undefined') {
     const expiryStr = localStorage.getItem('foodtrail_admin_expires_at');
     if (expiryStr && Date.now() >= Number(expiryStr)) {
@@ -88,6 +123,7 @@ async function adminFetch<T>(endpoint: string, options?: RequestInit): Promise<T
 
   const headers = new Headers(options?.headers);
 
+  // Transitional Bearer only if a legacy token remains
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('foodtrail_admin_jwt');
     if (token) {
@@ -282,10 +318,59 @@ export async function deleteAdminDish(id: string): Promise<{ message: string }> 
 }
 
 /**
- * Fetches all registered platform users.
+ * Fetches all registered platform users (unwraps paginated `{ data }`).
  */
 export async function getAdminUsers(): Promise<PlatformUser[]> {
-  return adminFetch<PlatformUser[]>('/admin/users');
+  const res = await adminFetch<PlatformUser[] | { data: PlatformUser[] }>('/admin/users');
+  return unwrapList(res);
+}
+
+/**
+ * Fetches walking trails for admin moderation (paginated unwrap).
+ */
+export async function getAdminTrails(): Promise<AdminTrail[]> {
+  const res = await adminFetch<AdminTrail[] | { data: AdminTrail[] }>('/admin/trails');
+  return unwrapList(res);
+}
+
+/**
+ * Updates a trail's editable fields from the admin panel.
+ */
+export async function updateAdminTrail(
+  id: string,
+  data: Partial<Pick<AdminTrail, 'name' | 'description' | 'estimatedDuration' | 'distance' | 'area' | 'photoUrl'>>
+): Promise<AdminTrail> {
+  return adminFetch<AdminTrail>(`/admin/trails/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Deletes a walking trail.
+ */
+export async function deleteAdminTrail(id: string): Promise<{ message: string }> {
+  return adminFetch<{ message: string }>(`/admin/trails/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Fetches platform reviews for moderation (paginated unwrap).
+ */
+export async function getAdminReviews(): Promise<AdminReview[]> {
+  const res = await adminFetch<AdminReview[] | { data: AdminReview[] }>('/admin/reviews');
+  return unwrapList(res);
+}
+
+/**
+ * Deletes a review and triggers rating recalculation on the backend.
+ */
+export async function deleteAdminReview(id: string): Promise<{ message: string }> {
+  return adminFetch<{ message: string }>(`/admin/reviews/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 /**

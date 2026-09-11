@@ -1,10 +1,10 @@
 // File: src/models/Admin.js
 // Description: Mongoose schema representing platform administrators with hashed MPIN authentication.
 // Author: Akilan M
-// Created: 2026-09-10T11:25:30+05:30
+// Updated: 2026-09-11
 
 const mongoose = require('mongoose');
-const crypto = require('crypto');
+const { hashMpin, compareMpin, isHashedMpin } = require('../utils/mpinCrypto');
 
 const adminSchema = new mongoose.Schema({
   email: {
@@ -37,18 +37,15 @@ const adminSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-/**
- * Pre-save hook to hash the administrator MPIN using PBKDF2 with salt.
- */
 adminSchema.pre('save', function (next) {
   if (!this.isModified('mpin')) {
     return next();
   }
   try {
-    const salt = crypto.randomBytes(16).toString('hex');
-    const mpinStr = String(this.mpin);
-    const hash = crypto.pbkdf2Sync(mpinStr, salt, 1000, 64, 'sha512').toString('hex');
-    this.mpin = `${salt}:${hash}`;
+    if (this._skipMpinHash || isHashedMpin(this.mpin)) {
+      return next();
+    }
+    this.mpin = hashMpin(this.mpin);
     next();
   } catch (err) {
     next(err);
@@ -57,21 +54,25 @@ adminSchema.pre('save', function (next) {
 
 /**
  * Compares an entered candidate MPIN with the stored hashed MPIN.
- * @param {string|number} candidateMpin - The MPIN candidate string or number to verify.
- * @returns {boolean} True if matching, false otherwise.
+ * @param {string|number} candidateMpin - The MPIN candidate to verify.
+ * @returns {boolean} True if matching
  */
 adminSchema.methods.compareMpin = function (candidateMpin) {
-  try {
-    if (!this.mpin) return false;
-    const parts = this.mpin.split(':');
-    if (parts.length !== 2) return false;
-    const [salt, originalHash] = parts;
-    const mpinStr = String(candidateMpin);
-    const hash = crypto.pbkdf2Sync(mpinStr, salt, 1000, 64, 'sha512').toString('hex');
-    return hash === originalHash;
-  } catch (err) {
+  return compareMpin(candidateMpin, this.mpin);
+};
+
+/**
+ * Upgrades legacy MPIN hash after successful login.
+ * @param {string|number} plainMpin
+ * @returns {Promise<boolean>}
+ */
+adminSchema.methods.upgradeMpinHashIfNeeded = async function (plainMpin) {
+  if (typeof this.mpin === 'string' && this.mpin.startsWith('v1:')) {
     return false;
   }
+  this.mpin = hashMpin(plainMpin);
+  await this.save();
+  return true;
 };
 
 module.exports = mongoose.model('Admin', adminSchema);

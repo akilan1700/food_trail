@@ -166,7 +166,7 @@ export default function MyTripPage() {
     setCompleteLoading(true);
     try {
       const data = await completeWalk(savedTrailId || undefined);
-      dispatch(setCredentials({ user: data.user, token: localStorage.getItem('foodtrail_token') || '' }));
+      dispatch(setCredentials({ user: data.user }));
       setShowSuccessBanner(true);
       dispatch(clearTrip());
     } catch (err) {

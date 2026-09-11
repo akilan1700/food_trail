@@ -2,6 +2,7 @@
 // Description: Unified API service module containing typed fetch operations, offline caching, and PWA synchronization handlers.
 // Author: Akilan M
 // Created: 2026-08-12T14:21:00+05:30
+// Updated: 2026-09-11
 
 import { User, UserSettings, UserProfileDetails } from './authSlice';
 import { enqueueOfflineMutation, OfflineMutationItem } from './offlineSync';
@@ -103,6 +104,18 @@ export interface SavedTrip {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 /**
+ * Normalizes list endpoints that may return a bare array or a paginated `{ data }` envelope.
+ * @param payload - Array or paginated response body.
+ * @returns Flat array of items.
+ */
+export function unwrapList<T>(payload: T[] | { data: T[] } | null | undefined): T[] {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.data)) return payload.data;
+  return [];
+}
+
+/**
  * Saves a successful API GET response payload to local storage for offline use.
  */
 function setCacheItem<T>(key: string, data: T): void {
@@ -136,7 +149,7 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
   const url = `${API_BASE}${endpoint}`;
   const isGet = !options?.method || options.method === 'GET';
 
-  // Auto-destroy local session if past 1 hour expiry
+  // Auto-destroy local session if past client-side expiry (cookie is authoritative)
   if (typeof window !== 'undefined') {
     const expiryStr = localStorage.getItem('foodtrail_session_expires_at');
     if (expiryStr && Date.now() >= Number(expiryStr)) {
@@ -148,6 +161,7 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
   }
 
   const headers = new Headers(options?.headers);
+  // Transitional Bearer only if a legacy token remains in storage (cookies preferred)
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('foodtrail_token');
     if (token) {
@@ -204,7 +218,8 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
  * Fetch all signature or featured dishes.
  */
 export async function getDishes(): Promise<Dish[]> {
-  return apiRequest<Dish[]>('/dishes');
+  const res = await apiRequest<Dish[] | { data: Dish[] }>('/dishes');
+  return unwrapList(res);
 }
 
 /**
@@ -212,17 +227,21 @@ export async function getDishes(): Promise<Dish[]> {
  */
 export async function searchDishes(query: string): Promise<Dish[]> {
   const params = new URLSearchParams();
+  params.append('page', '1');
+  params.append('limit', '100');
   if (query.trim()) {
     params.append('q', query.trim());
   }
-  return apiRequest<Dish[]>(`/dishes/search?${params.toString()}`);
+  const res = await apiRequest<Dish[] | { data: Dish[] }>(`/dishes/search?${params.toString()}`);
+  return unwrapList(res);
 }
 
 /**
  * Fetch all walking food trails.
  */
 export async function getTrails(): Promise<Trail[]> {
-  return apiRequest<Trail[]>('/trails');
+  const res = await apiRequest<Trail[] | { data: Trail[] }>('/trails');
+  return unwrapList(res);
 }
 
 /**
@@ -262,7 +281,9 @@ export async function updateBusyStatus(restaurantId: string, newStatus: string):
  * Fetch all restaurants.
  */
 export async function getRestaurants(): Promise<Restaurant[]> {
-  return apiRequest<Restaurant[]>('/restaurants');
+  // Prefer unpaginated full list so browse/search never silently truncates
+  const res = await apiRequest<Restaurant[] | { data: Restaurant[] }>('/restaurants');
+  return unwrapList(res);
 }
 
 /**
@@ -511,7 +532,9 @@ export interface AuthResponse {
   user?: User;
   status?: string;
   email?: string;
-  type?: 'signup' | 'login';
+  type?: 'signup' | 'login' | 'reset_mpin';
+  /** Session lifetime in seconds when login/verify succeeds. */
+  expiresIn?: number;
 }
 
 /**
@@ -539,8 +562,12 @@ export async function loginUser(email: string, mpin: string): Promise<AuthRespon
 /**
  * Verify the OTP sent via email and complete registration/login.
  */
-export async function verifyOtp(email: string, otp: string, type: 'signup' | 'login'): Promise<{ token: string; user: User }> {
-  return apiRequest<{ token: string; user: User }>('/auth/verify', {
+export async function verifyOtp(
+  email: string,
+  otp: string,
+  type: 'signup' | 'login'
+): Promise<{ token: string; user: User; expiresIn?: number }> {
+  return apiRequest<{ token: string; user: User; expiresIn?: number }>('/auth/verify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, otp, type }),
@@ -614,6 +641,95 @@ export async function logoutUser(): Promise<{ message: string }> {
   return apiRequest<{ message: string }>('/auth/logout', {
     method: 'POST',
     credentials: 'include',
+  });
+}
+
+/**
+ * Start forgot-MPIN flow by requesting an email OTP.
+ * @param email - Registered account email.
+ */
+export async function forgotMpin(email: string): Promise<{ status: string; email: string; type: string }> {
+  return apiRequest<{ status: string; email: string; type: string }>('/auth/forgot-mpin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+}
+
+/**
+ * Complete MPIN reset with OTP and new MPIN.
+ * @param payload - Email, OTP, and new MPIN.
+ */
+export async function resetMpin(payload: {
+  email: string;
+  otp: string;
+  mpin: string;
+}): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/auth/reset-mpin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Resend a pending OTP email for signup or MPIN reset.
+ * @param email - Target email address.
+ * @param type - OTP purpose (`signup` or `reset_mpin`).
+ */
+export async function resendOtp(
+  email: string,
+  type: 'signup' | 'login' | 'reset_mpin' = 'signup'
+): Promise<{ status: string; email: string; type: string }> {
+  const otpType = type === 'reset_mpin' ? 'reset_mpin' : 'signup';
+  return apiRequest<{ status: string; email: string; type: string }>('/auth/resend-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, type: otpType }),
+  });
+}
+
+/**
+ * Permanently delete the authenticated user account.
+ */
+export async function deleteAccount(): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/auth/account', {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Update a dining spot owned by the current user.
+ * @param id - Restaurant ID.
+ * @param body - Partial restaurant fields to update.
+ */
+export async function updateMySpot(
+  id: string,
+  body: {
+    name?: string;
+    description?: string;
+    address?: string;
+    area?: string;
+    photoUrl?: string;
+    vibeTags?: string[];
+    coordinates?: number[];
+    busyStatus?: string;
+  }
+): Promise<Restaurant> {
+  return apiRequest<Restaurant>(`/restaurants/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Delete a dining spot owned by the current user.
+ * @param id - Restaurant ID.
+ */
+export async function deleteMySpot(id: string): Promise<{ success: boolean; message: string }> {
+  return apiRequest<{ success: boolean; message: string }>(`/restaurants/${id}`, {
+    method: 'DELETE',
   });
 }
 

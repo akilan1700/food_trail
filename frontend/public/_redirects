@@ -2,6 +2,11 @@
 # Description: Cloudflare Pages redirection and Single Page Application rewrite rules.
 # Author: Akilan M
 # Created: 2026-09-10T16:03:30+05:30
+# Updated: 2026-09-11
 
-# Single Page App fallback for all dynamic client routes
+# Shared trip dynamic IDs → static export stub (client reads id from URL)
+/trip/shared/*/ /trip/shared/shared/index.html 200
+/trip/shared/* /trip/shared/shared/index.html 200
+
+# Single Page App fallback for remaining client routes
 /* /index.html 200

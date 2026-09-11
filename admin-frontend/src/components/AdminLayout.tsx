@@ -2,6 +2,7 @@
 // Description: Master layout wrapper providing the administrator command center navigation, sidebar, and session controls.
 // Author: Akilan M
 // Created: 2026-09-10T11:27:45+05:30
+// Updated: 2026-09-11
 
 'use client';
 
@@ -19,6 +20,8 @@ import {
   ExternalLink,
   Menu,
   X,
+  Route,
+  MessageSquare,
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -53,6 +56,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
     { label: 'Registered Spots', href: '/restaurants', icon: Store },
     { label: 'Signature Dishes', href: '/dishes', icon: UtensilsCrossed },
+    { label: 'Trails', href: '/trails', icon: Route },
+    { label: 'Reviews', href: '/reviews', icon: MessageSquare },
     { label: 'Platform Users', href: '/users', icon: Users },
   ];
 

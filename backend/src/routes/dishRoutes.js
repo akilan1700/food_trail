@@ -1,12 +1,15 @@
 // File: src/routes/dishRoutes.js
-// Description: Express routes for dish searching and filtering by restaurant vibes.
+// Description: Express routes for dish searching, listing, and authenticated create.
 // Author: Akilan M
-// Created: 2026-08-11T17:38:11+05:30
+// Updated: 2026-09-11
 
 const express = require('express');
 const router = express.Router();
 const Dish = require('../models/Dish');
 const Restaurant = require('../models/Restaurant');
+const authMiddleware = require('../middleware/authMiddleware');
+const { escapeRegex } = require('../utils/escapeRegex');
+const { parsePagination, sendListResponse } = require('../utils/pagination');
 
 /**
  * @route   GET /api/dishes/search
@@ -16,42 +19,57 @@ const Restaurant = require('../models/Restaurant');
 router.get('/search', async (req, res, next) => {
   try {
     const { q, vibe } = req.query;
+    const { page, limit, skip, paginate } = parsePagination(req.query);
 
     let query = {};
+    let dishes;
+
     if (q) {
-      // Find restaurants matching name or area to include their dishes in search
+      const safe = escapeRegex(q);
       const matchingRestaurants = await Restaurant.find({
         $or: [
-          { name: { $regex: q, $options: 'i' } },
-          { area: { $regex: q, $options: 'i' } },
+          { name: { $regex: safe, $options: 'i' } },
+          { area: { $regex: safe, $options: 'i' } },
         ],
       }).select('_id');
       const matchedRestIds = matchingRestaurants.map((r) => r._id);
 
-      query.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { restaurantId: { $in: matchedRestIds } },
-      ];
+      try {
+        dishes = await Dish.find(
+          { $text: { $search: q } },
+          { score: { $meta: 'textScore' } }
+        )
+          .sort({ score: { $meta: 'textScore' } })
+          .populate('restaurantId');
+      } catch {
+        dishes = null;
+      }
+
+      if (!dishes || dishes.length === 0) {
+        query.$or = [
+          { name: { $regex: safe, $options: 'i' } },
+          { description: { $regex: safe, $options: 'i' } },
+          { restaurantId: { $in: matchedRestIds } },
+        ];
+        dishes = await Dish.find(query).populate('restaurantId');
+      }
+    } else {
+      dishes = await Dish.find({}).populate('restaurantId');
     }
 
-    // Fetch matched dishes and populate their restaurant details
-    let dishes = await Dish.find(query).populate('restaurantId');
-
-    // Filter by restaurant vibe tags if provided
     if (vibe) {
-      const vibeFilters = vibe.split(',').map((v) => v.trim().toLowerCase());
+      const vibeFilters = vibe.split(',').map((v) => v.trim().toLowerCase()).filter(Boolean);
       dishes = dishes.filter((dish) => {
         if (!dish.restaurantId) return false;
-        const restVibes = dish.restaurantId.vibeTags.map((v) => v.toLowerCase());
+        const restVibes = (dish.restaurantId.vibeTags || []).map((v) => v.toLowerCase());
         return vibeFilters.every((f) => restVibes.includes(f));
       });
     }
 
-    // Sort dishes by rating in descending order
     dishes.sort((a, b) => b.rating - a.rating);
-
-    res.json(dishes);
+    const total = dishes.length;
+    const pageRows = dishes.slice(skip, skip + limit);
+    sendListResponse(res, pageRows, { page, limit, total, paginate });
   } catch (error) {
     next(error);
   }
@@ -59,13 +77,17 @@ router.get('/search', async (req, res, next) => {
 
 /**
  * @route   GET /api/dishes
- * @desc    Get all dishes
+ * @desc    Get all dishes (paginated when page/limit provided)
  * @access  Public
  */
 router.get('/', async (req, res, next) => {
   try {
-    const dishes = await Dish.find({}).populate('restaurantId');
-    res.json(dishes);
+    const { page, limit, skip, paginate } = parsePagination(req.query);
+    const [dishes, total] = await Promise.all([
+      Dish.find({}).populate('restaurantId').skip(skip).limit(limit),
+      Dish.countDocuments({}),
+    ]);
+    sendListResponse(res, dishes, { page, limit, total, paginate });
   } catch (error) {
     next(error);
   }
@@ -73,14 +95,13 @@ router.get('/', async (req, res, next) => {
 
 /**
  * @route   POST /api/dishes
- * @desc    Create a new dish
- * @access  Public
+ * @desc    Create a new dish (authenticated)
+ * @access  Private
  */
-router.post('/', async (req, res, next) => {
+router.post('/', authMiddleware, async (req, res, next) => {
   try {
     const { name, description, price, photoUrl, restaurantId, isSignature } = req.body;
 
-    // Validation
     if (!name || !name.trim()) {
       return res.status(400).json({ error: { message: 'Dish name is required' } });
     }
@@ -93,7 +114,6 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: { message: 'Restaurant ID is required' } });
     }
 
-    // Verify restaurant exists
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
       return res.status(404).json({ error: { message: 'Associated restaurant not found' } });
@@ -109,7 +129,6 @@ router.post('/', async (req, res, next) => {
     });
 
     await dish.save();
-
     res.status(201).json(dish);
   } catch (error) {
     next(error);

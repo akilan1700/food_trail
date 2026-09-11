@@ -1,16 +1,27 @@
 // File: src/services/adminSeedService.js
-// Description: Service for reading adminCredentials.json and automatically seeding administrator accounts into the Admin collection.
+// Description: Seeds administrator accounts from env (preferred) or non-secret config placeholders.
 // Author: Akilan M
-// Created: 2026-09-10T11:25:35+05:30
+// Updated: 2026-09-11
 
 const path = require('path');
 const fs = require('fs');
 const Admin = require('../models/Admin');
 
 /**
- * Reads admin credentials from the JSON config file and ensures all listed administrators exist in MongoDB.
- * Updates names or roles if modified in the JSON file.
- *
+ * Returns true if the MPIN value looks like a real seed secret (not a placeholder).
+ * @param {string} mpin
+ * @returns {boolean}
+ */
+function isUsableMpin(mpin) {
+  if (!mpin || typeof mpin !== 'string') return false;
+  const trimmed = mpin.trim();
+  if (!trimmed || trimmed.includes('REPLACE') || trimmed.includes('PLACEHOLDER')) return false;
+  return /^\d{4}$|^\d{6}$/.test(trimmed);
+}
+
+/**
+ * Reads admin credentials and ensures administrators exist in MongoDB.
+ * Prefers ADMIN_EMAIL + ADMIN_MPIN environment variables.
  * @returns {Promise<number>} Count of administrators seeded or verified.
  */
 async function seedAdminsFromConfig() {
@@ -19,14 +30,10 @@ async function seedAdminsFromConfig() {
     let adminList = [];
     if (fs.existsSync(configPath)) {
       const rawData = fs.readFileSync(configPath, 'utf-8');
-      adminList = JSON.parse(rawData);
+      const parsed = JSON.parse(rawData);
+      adminList = Array.isArray(parsed) ? parsed : [];
     }
 
-    if (!Array.isArray(adminList)) {
-      adminList = [];
-    }
-
-    // Support dynamic admin seeding via environment variables in production
     if (process.env.ADMIN_EMAIL && process.env.ADMIN_MPIN) {
       adminList.push({
         email: process.env.ADMIN_EMAIL,
@@ -36,19 +43,16 @@ async function seedAdminsFromConfig() {
       });
     }
 
+    adminList = adminList.filter((item) => item && item.email && isUsableMpin(String(item.mpin || '')));
+
     if (adminList.length === 0) {
-      console.log('No admin credentials defined in config or environment.');
+      console.log('No admin credentials defined via ADMIN_EMAIL/ADMIN_MPIN (config placeholders skipped).');
       return 0;
     }
 
     let seededCount = 0;
 
     for (const item of adminList) {
-      if (!item.email || !item.mpin) {
-        console.warn('Skipping invalid admin credential item (missing email or mpin):', item);
-        continue;
-      }
-
       const trimmedEmail = item.email.trim().toLowerCase();
       const existingAdmin = await Admin.findOne({ email: trimmedEmail });
 
@@ -69,10 +73,9 @@ async function seedAdminsFromConfig() {
           updated = true;
         }
         if (item.role && existingAdmin.role !== item.role) {
-          existingAdmin.role = item.role;
+          existingAdmin.role = item.role === 'superadmin' ? 'superadmin' : 'admin';
           updated = true;
         }
-        // Verify if MPIN needs update
         if (!existingAdmin.compareMpin(item.mpin)) {
           existingAdmin.mpin = String(item.mpin).trim();
           updated = true;

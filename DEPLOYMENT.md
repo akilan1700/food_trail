@@ -58,7 +58,8 @@ This guide provides end-to-end instructions for deploying the FoodTrail applicat
    - Create a database user (e.g., `foodtrail_prod_user`) with a strong password.
    - Assign built-in role: `readWriteAnyDatabase`.
 4. **Network Access**:
-   - Add IP Access: `0.0.0.0/0` (Allow access from anywhere, required for dynamic cloud IPs on Render).
+   - Prefer restricting to your host’s outbound IPs (Render static egress / Cloudflare) when available.
+   - If you must allow broad access for dynamic cloud IPs, you can temporarily use `0.0.0.0/0`, but treat Atlas credentials as highly sensitive and rotate them if exposed.
 5. **Connection String**:
    - Click **Connect** $\rightarrow$ **Drivers** (Node.js).
    - Copy the URI:
@@ -87,7 +88,8 @@ The repository includes a ready-to-use [`render.yaml`](./render.yaml) Blueprint.
    - `CLOUDINARY_CLOUD_NAME`: Cloudinary cloud name.
    - `CLOUDINARY_API_KEY`: Cloudinary API key.
    - `CLOUDINARY_API_SECRET`: Cloudinary API secret.
-   - `ADMIN_INITIAL_PASSWORD`: Initial secure password for the default admin (`admin@foodtrail.com`).
+   - `ADMIN_EMAIL`: Initial admin email (e.g. `admin@foodtrail.com`).
+   - `ADMIN_MPIN`: Initial secure 4- or 6-digit admin MPIN (never commit real values).
 6. Click **Apply**.
 
 ---
@@ -114,11 +116,11 @@ The repository includes a ready-to-use [`render.yaml`](./render.yaml) Blueprint.
   | `BREVO_API_KEY` | `xkeysib-...` |
   | `BREVO_SENDER_EMAIL` | `noreply@yourdomain.com` |
   | `BREVO_SENDER_NAME` | `FoodTrail Puducherry` |
-  | `CLOUDINARY_CLOUD_NAME` | `n7inrkdf` |
-  | `CLOUDINARY_API_KEY` | `652556289183442` |
-  | `CLOUDINARY_API_SECRET` | `GY0PEKFq2jaJKp5b2JltH3sIa8k` |
+  | `CLOUDINARY_CLOUD_NAME` | *(your Cloudinary cloud name)* |
+  | `CLOUDINARY_API_KEY` | *(your Cloudinary API key)* |
+  | `CLOUDINARY_API_SECRET` | *(your Cloudinary API secret)* |
   | `ADMIN_EMAIL` | `admin@foodtrail.com` |
-  | `ADMIN_INITIAL_PASSWORD` | *(Secure initial admin password)* |
+  | `ADMIN_MPIN` | *(Secure 4- or 6-digit admin MPIN)* |
 
 #### 2. Admin Frontend Static Site:
 - **Type**: Static Site

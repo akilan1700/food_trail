@@ -227,16 +227,16 @@ describe('Authentication API Integration Tests', () => {
       expect(res.statusCode).toBe(401);
     });
 
-    test('should reject expired session token (after 1 hour) with descriptive 401 message', async () => {
-      const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
-      const expiredToken = jwt.sign({ userId: registeredUser._id }, JWT_SECRET, { expiresIn: '0s' });
+    test('should reject expired session token with descriptive 401 message', async () => {
+      const { getJwtSecret } = require('../src/utils/jwtSecret');
+      const expiredToken = jwt.sign({ userId: registeredUser._id }, getJwtSecret(), { expiresIn: '0s' });
 
       const res = await request(app)
         .get('/api/auth/profile')
         .set('Authorization', `Bearer ${expiredToken}`);
 
       expect(res.statusCode).toBe(401);
-      expect(res.body.error.message).toContain('Session expired after 1 hour');
+      expect(res.body.error.message).toContain('Session expired');
     });
 
     test('should clear authentication cookie on logout', async () => {

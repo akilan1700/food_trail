@@ -1,7 +1,7 @@
 // File: src/services/adminAuthContext.tsx
-// Description: React Authentication Context managing admin session state, token persistence, and route protection.
+// Description: Admin auth context using HttpOnly cookie plus Bearer fallback so login never blocks across origins.
 // Author: Akilan M
-// Created: 2026-09-10T11:27:30+05:30
+// Updated: 2026-09-11
 
 'use client';
 
@@ -18,6 +18,9 @@ interface AdminAuthContextType {
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
+
+/** Align with backend admin cookie (7 days). */
+const ADMIN_SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Provider component wrapping admin views to supply administrative authentication state.
@@ -58,35 +61,37 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       }
 
       const storedToken = localStorage.getItem('foodtrail_admin_jwt');
-      const storedAdmin = localStorage.getItem('foodtrail_admin_user');
+      const storedUser = localStorage.getItem('foodtrail_admin_user');
 
-      if (storedToken) {
-        if (isMounted) setToken(storedToken);
-        if (storedAdmin) {
-          try {
-            if (isMounted) setAdmin(JSON.parse(storedAdmin));
-          } catch {}
-        }
-        // Verify with backend
-        try {
-          const profileRes = await getAdminProfile();
-          if (isMounted) {
-            setAdmin(profileRes.admin);
-            localStorage.setItem('foodtrail_admin_user', JSON.stringify(profileRes.admin));
+      try {
+        const profileRes = await getAdminProfile();
+        if (isMounted) {
+          setAdmin(profileRes.admin);
+          setToken(storedToken);
+          localStorage.setItem('foodtrail_admin_user', JSON.stringify(profileRes.admin));
+          if (!localStorage.getItem('foodtrail_admin_expires_at')) {
+            localStorage.setItem('foodtrail_admin_expires_at', String(Date.now() + ADMIN_SESSION_MS));
           }
-        } catch {
-          console.warn('Session expired or invalid token');
-          if (isMounted) {
+        }
+      } catch {
+        // Fall back to cached admin if cookie check fails but token/user exist
+        if (storedToken && storedUser && isMounted) {
+          try {
+            setAdmin(JSON.parse(storedUser));
+            setToken(storedToken);
+          } catch {
             purgeAdminSession();
           }
+        } else if (isMounted) {
+          purgeAdminSession();
         }
       }
+
       if (isMounted) setLoading(false);
     }
 
     initAuth();
 
-    // Heartbeat & focus/visibility listeners for session auto-destruction
     const handleFocus = () => checkAdminExpiry();
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleFocus);
@@ -98,7 +103,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     };
   }, [checkAdminExpiry, purgeAdminSession]);
 
-  // Route protection guard
   useEffect(() => {
     if (!loading) {
       if (!admin && pathname !== '/login') {
@@ -111,10 +115,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, mpin: string) => {
     const res = await adminLogin(email, mpin);
-    const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour expiration
-    setToken(res.token);
+    const expiresAt = Date.now() + ADMIN_SESSION_MS;
+    setToken(res.token || null);
     setAdmin(res.admin);
-    localStorage.setItem('foodtrail_admin_jwt', res.token);
+    if (res.token) {
+      localStorage.setItem('foodtrail_admin_jwt', res.token);
+    }
     localStorage.setItem('foodtrail_admin_user', JSON.stringify(res.admin));
     localStorage.setItem('foodtrail_admin_expires_at', String(expiresAt));
     router.replace('/');
@@ -123,7 +129,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       await adminLogout();
-    } catch {}
+    } catch {
+      // ignore logout network errors
+    }
     purgeAdminSession();
     router.replace('/login');
   };

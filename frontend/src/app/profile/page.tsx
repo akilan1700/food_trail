@@ -2,6 +2,7 @@
 // Description: User profile page displaying authenticated session credentials, trip stats, and sign out controls.
 // Author: Akilan M
 // Created: 2026-08-13T11:35:40+05:30
+// Updated: 2026-09-11
 
 'use client';
 
@@ -9,6 +10,7 @@ import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
 import { selectCurrentUser, clearCredentials } from '../services/authSlice';
 import { selectSavedRestIds } from '../services/tripSlice';
+import { logoutUser } from '../services/api';
 import LoadingScreen from '../components/LoadingScreen';
 import { useRouter } from 'next/navigation';
 import { LogOut, Calendar, Map, CheckCircle2, Award, Heart } from 'lucide-react';
@@ -21,12 +23,18 @@ export default function ProfilePage() {
   const router = useRouter();
   useEffect(() => {
     if (!user) {
-      router.push('/login');
+      router.replace('/login');
     }
   }, [user, router]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch {
+      // Clear local session even if cookie logout fails
+    }
     dispatch(clearCredentials());
+    router.replace('/login');
   };
 
   if (!user) {
@@ -57,7 +65,7 @@ export default function ProfilePage() {
         
         <div className="flex-grow text-center sm:text-left">
           <h1 className="text-2xl md:text-3xl font-black text-text-primary mb-1">{user.name}</h1>
-          <p className="text-text-secondary text-sm md:text-base font-medium mb-3">{user.email}</p>
+          <p className="text-text-secondary text-sm md:text-base font-medium mb-3">{user.email || 'Signed in'}</p>
           <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs text-text-muted">
             <Calendar className="w-3.5 h-3.5" />
             <span>Member since {memberSince}</span>

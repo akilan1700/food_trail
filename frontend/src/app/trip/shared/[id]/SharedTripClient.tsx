@@ -15,18 +15,39 @@ import { AlertCircle, Download, MapPin, Star, UtensilsCrossed } from 'lucide-rea
 
 /**
  * SharedTripClient renders dynamic shared trip routes on the client.
+ * Resolves share id from Next params or, after SPA rewrite, from the URL path.
  */
 export default function SharedTripClient() {
-  const { id } = useParams();
+  const params = useParams();
   const router = useRouter();
   const [trip, setTrip] = useState<SavedTrip | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
+  /**
+   * Resolves the share id from route params or the browser pathname.
+   */
+  const resolveShareId = (): string | null => {
+    const fromParams = typeof params?.id === 'string' ? params.id : Array.isArray(params?.id) ? params.id[0] : null;
+    if (fromParams && fromParams !== 'shared' && fromParams !== '_') {
+      return fromParams;
+    }
+    if (typeof window !== 'undefined') {
+      const parts = window.location.pathname.split('/').filter(Boolean);
+      // Expected: trip / shared / {id}
+      const idx = parts.findIndex((p) => p === 'shared');
+      if (idx >= 0 && parts[idx + 1] && parts[idx + 1] !== 'shared' && parts[idx + 1] !== '_') {
+        return parts[idx + 1];
+      }
+    }
+    return null;
+  };
+
   useEffect(() => {
     let isCancelled = false;
+    const id = resolveShareId();
 
-    if (typeof id === 'string' && id !== 'shared') {
+    if (id) {
       getSharedTrip(id)
         .then((data) => {
           if (!isCancelled) {
@@ -44,6 +65,7 @@ export default function SharedTripClient() {
     } else {
       Promise.resolve().then(() => {
         if (!isCancelled) {
+          setErrorMsg('Missing or invalid shared trail link.');
           setLoading(false);
         }
       });
@@ -52,7 +74,8 @@ export default function SharedTripClient() {
     return () => {
       isCancelled = true;
     };
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-resolve when params change
+  }, [params?.id]);
 
   // Import all restaurant IDs into visitor's LocalStorage saved trip list
   const handleImportRoute = () => {

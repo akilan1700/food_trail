@@ -1,29 +1,27 @@
 // File: src/middleware/adminMiddleware.js
-// Description: Express middleware ensuring request has a valid JWT belonging to a registered Administrator in the Admin collection.
+// Description: Express middleware ensuring request has a valid JWT belonging to a registered Administrator.
 // Author: Akilan M
-// Created: 2026-09-10T11:25:40+05:30
+// Updated: 2026-09-11
 
 const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
+const { getJwtSecret } = require('../utils/jwtSecret');
 
 /**
  * Express middleware to authenticate requests from Administrators.
- * Reads token from 'admin_token' cookie or Authorization: Bearer header.
- * Attaches the authenticated admin document to `req.admin`.
+ * Reads token from Authorization Bearer header or `admin_token` cookie.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 async function adminMiddleware(req, res, next) {
   try {
     let token = null;
 
-    // 1. Try to read from Authorization Header first
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
-    }
-    // 2. Fall back to admin_token cookie
-    else if (req.cookies && req.cookies.admin_token) {
+    } else if (req.cookies && req.cookies.admin_token) {
       token = req.cookies.admin_token;
     }
 
@@ -35,11 +33,11 @@ async function adminMiddleware(req, res, next) {
 
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, getJwtSecret());
     } catch (err) {
       if (err.name === 'TokenExpiredError') {
         return res.status(401).json({
-          error: { message: 'Admin session expired after 1 hour. Please log in again.' },
+          error: { message: 'Admin session expired. Please log in again.' },
         });
       }
       return res.status(401).json({
@@ -60,7 +58,6 @@ async function adminMiddleware(req, res, next) {
       });
     }
 
-    // Attach admin document and token payload
     req.admin = admin;
     req.tokenPayload = decoded;
 

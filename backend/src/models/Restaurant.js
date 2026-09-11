@@ -67,6 +67,7 @@ const restaurantSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     default: null,
+    index: true,
   },
 }, {
   timestamps: true,
@@ -74,5 +75,6 @@ const restaurantSchema = new mongoose.Schema({
 
 // Spatial index for geospatial queries
 restaurantSchema.index({ location: '2dsphere' });
+restaurantSchema.index({ area: 1 });
 
 module.exports = mongoose.model('Restaurant', restaurantSchema);

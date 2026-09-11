@@ -34,7 +34,7 @@ export default function StoreProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     store.dispatch(loadTripFromStorage());
 
-    // 1. Initial 1-hour session expiration check from local storage
+    // 1. Initial session expiration check from local storage (7-day client window)
     store.dispatch(checkSessionExpiry());
 
     // 2. Validate current user session from the cookie on mount
@@ -62,7 +62,7 @@ export default function StoreProvider({ children }: { children: React.ReactNode 
     window.addEventListener('focus', handleFocusOrVisibility);
     document.addEventListener('visibilitychange', handleFocusOrVisibility);
 
-    // 5. Periodic 1-hour session watchdog check (runs every 10 seconds)
+    // 5. Periodic session watchdog check (runs every 10 seconds)
     const watchdogInterval = setInterval(() => {
       store.dispatch(checkSessionExpiry());
     }, 10000);

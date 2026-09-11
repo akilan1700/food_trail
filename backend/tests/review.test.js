@@ -13,7 +13,7 @@ const Dish = require('../src/models/Dish');
 const Review = require('../src/models/Review');
 
 const TEST_MONGO_URI = 'mongodb://localhost:27017/foodtrail_test';
-const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
+const JWT_SECRET = require('../src/utils/jwtSecret').getJwtSecret();
 
 beforeAll(async () => {
   if (mongoose.connection.readyState === 0) {

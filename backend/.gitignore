@@ -39,3 +39,6 @@ coverage/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local uploads fallback directory
+uploads/

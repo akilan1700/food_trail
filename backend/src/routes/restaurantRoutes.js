@@ -1,39 +1,62 @@
 // File: src/routes/restaurantRoutes.js
-// Description: Express routes for retrieving restaurants and updating their live busy status.
+// Description: Express routes for retrieving restaurants and authenticated create/update/delete.
 // Author: Akilan M
-// Created: 2026-08-11T17:38:17+05:30
+// Updated: 2026-09-11
 
 const express = require('express');
 const router = express.Router();
 const Restaurant = require('../models/Restaurant');
 const Dish = require('../models/Dish');
+const Review = require('../models/Review');
 const authMiddleware = require('../middleware/authMiddleware');
+const authOrAdminMiddleware = require('../middleware/authOrAdminMiddleware');
+const { escapeRegex } = require('../utils/escapeRegex');
+const { parsePagination, sendListResponse } = require('../utils/pagination');
+
+/**
+ * Returns true if the requester is admin or the restaurant owner.
+ * @param {import('express').Request} req
+ * @param {object} restaurant
+ * @returns {boolean}
+ */
+function canMutateRestaurant(req, restaurant) {
+  if (req.admin) return true;
+  if (req.user && restaurant.createdBy && String(restaurant.createdBy) === String(req.user._id)) {
+    return true;
+  }
+  return false;
+}
 
 /**
  * @route   GET /api/restaurants
- * @desc    Get all restaurants, with optional search, vibe, and area filtering
+ * @desc    Get restaurants with optional search/vibe/area filters (paginated)
  * @access  Public
  */
 router.get('/', async (req, res, next) => {
   try {
     const { area, q, vibe } = req.query;
-    let query = {};
+    const { page, limit, skip, paginate } = parsePagination(req.query);
+    const query = {};
     if (area) {
-      query.area = { $regex: new RegExp(`^${area}$`, 'i') };
+      query.area = { $regex: new RegExp(`^${escapeRegex(area)}$`, 'i') };
     }
     if (q) {
+      const safe = escapeRegex(q);
       query.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { description: { $regex: q, $options: 'i' } },
-        { area: { $regex: q, $options: 'i' } },
+        { name: { $regex: safe, $options: 'i' } },
+        { description: { $regex: safe, $options: 'i' } },
+        { area: { $regex: safe, $options: 'i' } },
       ];
     }
     if (vibe) {
-      const vibes = vibe.split(',').map((v) => v.trim());
-      query.vibeTags = { $all: vibes };
+      const vibes = vibe.split(',').map((v) => v.trim()).filter(Boolean);
+      if (vibes.length) query.vibeTags = { $all: vibes };
     }
-    const restaurants = await Restaurant.find(query).sort({ rating: -1, _id: -1 });
-    res.json(restaurants);
+    const [restaurants, total] = await Promise.all([
+      Restaurant.find(query).sort({ rating: -1, _id: -1 }).skip(skip).limit(limit),
+      Restaurant.countDocuments(query),
+    ]);
+    sendListResponse(res, restaurants, { page, limit, total, paginate });
   } catch (error) {
     next(error);
   }
@@ -41,7 +64,7 @@ router.get('/', async (req, res, next) => {
 
 /**
  * @route   GET /api/restaurants/my-spots
- * @desc    Get all restaurants/spots created by the authenticated user
+ * @desc    Get restaurants created by the authenticated user
  * @access  Private
  */
 router.get('/my-spots', authMiddleware, async (req, res, next) => {
@@ -55,7 +78,7 @@ router.get('/my-spots', authMiddleware, async (req, res, next) => {
 
 /**
  * @route   GET /api/restaurants/:id
- * @desc    Get a single restaurant and its associated menu dishes
+ * @desc    Get a single restaurant and its menu dishes
  * @access  Public
  */
 router.get('/:id', async (req, res, next) => {
@@ -73,10 +96,10 @@ router.get('/:id', async (req, res, next) => {
 
 /**
  * @route   PATCH /api/restaurants/:id/busy-status
- * @desc    Update a restaurant's live busy status with validation
- * @access  Public
+ * @desc    Update busy status (any authenticated user or admin — community live signal)
+ * @access  Private
  */
-router.patch('/:id/busy-status', async (req, res, next) => {
+router.patch('/:id/busy-status', authOrAdminMiddleware, async (req, res, next) => {
   try {
     const { busyStatus } = req.body;
     const validStatuses = ['Plenty of Tables', 'Filling Up', '~15 Min Wait', 'Closed'];
@@ -108,10 +131,10 @@ router.patch('/:id/busy-status', async (req, res, next) => {
 
 /**
  * @route   PATCH /api/restaurants/:id/photo
- * @desc    Update a restaurant's photo URL
- * @access  Public
+ * @desc    Update restaurant photo URL (any authenticated user or admin)
+ * @access  Private
  */
-router.patch('/:id/photo', async (req, res, next) => {
+router.patch('/:id/photo', authOrAdminMiddleware, async (req, res, next) => {
   try {
     const { photoUrl } = req.body;
     if (!photoUrl) {
@@ -136,14 +159,13 @@ router.patch('/:id/photo', async (req, res, next) => {
 
 /**
  * @route   POST /api/restaurants
- * @desc    Create a new restaurant
- * @access  Public
+ * @desc    Create a new restaurant (authenticated)
+ * @access  Private
  */
-router.post('/', async (req, res, next) => {
+router.post('/', authMiddleware, async (req, res, next) => {
   try {
     const { name, description, address, area, coordinates, vibeTags, photoUrl } = req.body;
 
-    // Validation
     if (!name || !name.trim()) {
       return res.status(400).json({ error: { message: 'Restaurant name is required' } });
     }
@@ -167,20 +189,6 @@ router.post('/', async (req, res, next) => {
       });
     }
 
-    let createdBy = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const jwt = require('jsonwebtoken');
-        const token = authHeader.split(' ')[1];
-        const JWT_SECRET = process.env.JWT_SECRET || 'foodtrail-super-secret-key-change-in-prod';
-        const decoded = jwt.verify(token, JWT_SECRET);
-        createdBy = decoded.userId;
-      } catch (err) {
-        // Ignore invalid token for public route
-      }
-    }
-
     const restaurant = new Restaurant({
       name,
       description,
@@ -192,12 +200,80 @@ router.post('/', async (req, res, next) => {
       },
       vibeTags: Array.isArray(vibeTags) ? vibeTags : [],
       photoUrl,
-      createdBy,
+      createdBy: req.user._id,
     });
 
     await restaurant.save();
-
     res.status(201).json(restaurant);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   PUT /api/restaurants/:id
+ * @desc    Update own restaurant (owner or admin)
+ * @access  Private
+ */
+router.put('/:id', authOrAdminMiddleware, async (req, res, next) => {
+  try {
+    const restaurant = await Restaurant.findById(req.params.id);
+    if (!restaurant) {
+      return res.status(404).json({ error: { message: 'Restaurant not found' } });
+    }
+    if (!canMutateRestaurant(req, restaurant)) {
+      return res.status(403).json({ error: { message: 'Not allowed to update this restaurant' } });
+    }
+
+    const { name, description, address, area, coordinates, vibeTags, photoUrl, busyStatus } = req.body;
+    if (name !== undefined) restaurant.name = String(name).trim();
+    if (description !== undefined) restaurant.description = description;
+    if (address !== undefined) restaurant.address = address;
+    if (area !== undefined) restaurant.area = String(area).trim();
+    if (photoUrl !== undefined) restaurant.photoUrl = photoUrl;
+    if (Array.isArray(vibeTags)) restaurant.vibeTags = vibeTags;
+    if (busyStatus !== undefined) {
+      const validStatuses = ['Plenty of Tables', 'Filling Up', '~15 Min Wait', 'Closed'];
+      if (!validStatuses.includes(busyStatus)) {
+        return res.status(400).json({ error: { message: 'Invalid busyStatus' } });
+      }
+      restaurant.busyStatus = busyStatus;
+      restaurant.busyStatusLastUpdated = new Date();
+    }
+    if (coordinates && Array.isArray(coordinates) && coordinates.length === 2) {
+      const [longitude, latitude] = coordinates.map(Number);
+      if (!isNaN(longitude) && !isNaN(latitude)) {
+        restaurant.location = { type: 'Point', coordinates: [longitude, latitude] };
+      }
+    }
+
+    await restaurant.save();
+    res.json(restaurant);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @route   DELETE /api/restaurants/:id
+ * @desc    Delete own restaurant and related dishes/reviews
+ * @access  Private
+ */
+router.delete('/:id', authOrAdminMiddleware, async (req, res, next) => {
+  try {
+    const restaurant = await Restaurant.findById(req.params.id);
+    if (!restaurant) {
+      return res.status(404).json({ error: { message: 'Restaurant not found' } });
+    }
+    if (!canMutateRestaurant(req, restaurant)) {
+      return res.status(403).json({ error: { message: 'Not allowed to delete this restaurant' } });
+    }
+
+    await Dish.deleteMany({ restaurantId: restaurant._id });
+    await Review.deleteMany({ restaurantId: restaurant._id });
+    await restaurant.deleteOne();
+
+    res.json({ success: true, message: 'Restaurant deleted' });
   } catch (error) {
     next(error);
   }

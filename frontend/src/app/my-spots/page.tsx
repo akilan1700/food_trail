@@ -2,6 +2,7 @@
 // Description: Dedicated page displaying all dining spots and cafes created and submitted by the authenticated user.
 // Author: Akilan M
 // Created: 2026-09-10T12:17:35+05:30
+// Updated: 2026-09-11
 
 'use client';
 
@@ -10,6 +11,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   getMySpots,
+  updateMySpot,
+  deleteMySpot,
   Restaurant,
   formatPhotoUrl,
   getGoogleMapsUrl,
@@ -18,6 +21,7 @@ import { useAppSelector } from '../services/hooks';
 import { selectCurrentUser } from '../services/authSlice';
 import AddDishModal from '../components/AddDishModal';
 import ReviewModal from '../components/ReviewModal';
+import LoadingScreen from '../components/LoadingScreen';
 import {
   Store,
   MapPin,
@@ -27,6 +31,9 @@ import {
   Loader2,
   MessageSquare,
   Star,
+  Pencil,
+  Trash2,
+  X,
 } from 'lucide-react';
 
 export default function MySpotsPage() {
@@ -37,6 +44,14 @@ export default function MySpotsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedAddDishRest, setSelectedAddDishRest] = useState<{ id: string; name: string } | null>(null);
   const [selectedReviewSpot, setSelectedReviewSpot] = useState<Restaurant | null>(null);
+  const [editingSpot, setEditingSpot] = useState<Restaurant | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editArea, setEditArea] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadUserSpots = useCallback(async () => {
     try {
@@ -52,7 +67,7 @@ export default function MySpotsPage() {
 
   useEffect(() => {
     if (!user) {
-      router.push('/login');
+      router.replace('/login');
       return;
     }
 
@@ -61,13 +76,73 @@ export default function MySpotsPage() {
     });
   }, [user, router, loadUserSpots]);
 
+  /**
+   * Opens the simple edit form for an owned dining spot.
+   */
+  const openEdit = (spot: Restaurant) => {
+    setEditingSpot(spot);
+    setEditName(spot.name);
+    setEditDescription(spot.description || '');
+    setEditArea(spot.area || '');
+    setEditAddress(spot.address || '');
+    setEditError(null);
+  };
+
+  /**
+   * Saves edited spot fields via updateMySpot.
+   */
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSpot) return;
+    if (!editName.trim() || !editArea.trim()) {
+      setEditError('Name and area are required.');
+      return;
+    }
+
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      await updateMySpot(editingSpot._id, {
+        name: editName.trim(),
+        description: editDescription.trim(),
+        area: editArea.trim(),
+        address: editAddress.trim(),
+      });
+      setEditingSpot(null);
+      await loadUserSpots();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update spot.';
+      setEditError(message);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  /**
+   * Deletes an owned spot after confirmation.
+   */
+  const handleDeleteSpot = async (spot: Restaurant) => {
+    const confirmed = window.confirm(`Delete "${spot.name}" and its dishes/reviews? This cannot be undone.`);
+    if (!confirmed) return;
+
+    setDeletingId(spot._id);
+    try {
+      await deleteMySpot(spot._id);
+      setMySpots((prev) => prev.filter((s) => s._id !== spot._id));
+    } catch (err) {
+      console.error('Failed to delete spot:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete spot.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (!user) {
-    return null;
+    return <LoadingScreen />;
   }
 
   return (
     <div className="max-w-[960px] mx-auto py-6 md:py-10 px-4 animate-fade-in space-y-6">
-      {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl glass-panel border border-white/8 relative overflow-hidden">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-accent uppercase tracking-widest mb-1">
@@ -78,7 +153,7 @@ export default function MySpotsPage() {
             Spots You Have Added
           </h1>
           <p className="text-xs md:text-sm text-text-secondary mt-1">
-            Manage your registered dining spots, update live table statuses, and add signature menu items.
+            Manage your registered dining spots, update details, and add signature menu items.
           </p>
         </div>
 
@@ -91,7 +166,6 @@ export default function MySpotsPage() {
         </Link>
       </div>
 
-      {/* Spots List */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="w-8 h-8 text-accent animate-spin" />
@@ -123,7 +197,6 @@ export default function MySpotsPage() {
               key={spot._id}
               className="rounded-2xl overflow-hidden glass-panel border border-white/8 flex flex-col justify-between group hover:border-accent/30 transition-all shadow-xl"
             >
-              {/* Photo & Header */}
               <div>
                 <div className="relative h-48 w-full bg-bg-tertiary overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -133,13 +206,11 @@ export default function MySpotsPage() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
 
-                  {/* Area Badge */}
                   <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-xs font-bold text-white border border-white/10 flex items-center gap-1.5 shadow-md">
                     <MapPin className="w-3 h-3 text-accent" />
                     <span>{spot.area}</span>
                   </div>
 
-                  {/* Rating Badge */}
                   <button
                     type="button"
                     onClick={() => setSelectedReviewSpot(spot)}
@@ -154,7 +225,6 @@ export default function MySpotsPage() {
                   </button>
                 </div>
 
-                {/* Spot Details */}
                 <div className="p-5 space-y-3">
                   <div>
                     <h2 className="text-xl font-bold text-text-primary group-hover:text-accent transition-colors">
@@ -172,13 +242,10 @@ export default function MySpotsPage() {
                       {spot.description}
                     </p>
                   )}
-
                 </div>
               </div>
 
-              {/* Bottom Controls */}
-              <div className="p-5 pt-0">
-                {/* Actions */}
+              <div className="p-5 pt-0 space-y-2">
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
@@ -209,13 +276,93 @@ export default function MySpotsPage() {
                     <span>Map</span>
                   </a>
                 </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEdit(spot)}
+                    className="py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/8 text-text-secondary hover:text-text-primary font-semibold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deletingId === spot._id}
+                    onClick={() => handleDeleteSpot(spot)}
+                    className="py-2 rounded-lg bg-status-red/10 hover:bg-status-red hover:text-white border border-status-red/20 text-status-red font-semibold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    {deletingId === spot._id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    <span>Delete</span>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Add Dish Modal */}
+      {editingSpot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md glass-panel border border-white/10 p-6 space-y-4 relative">
+            <button
+              type="button"
+              onClick={() => setEditingSpot(null)}
+              className="absolute top-3 right-3 text-text-muted hover:text-text-primary cursor-pointer bg-transparent border-none"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-bold text-text-primary">Edit Spot</h3>
+            {editError && (
+              <p className="text-sm text-status-red">{editError}</p>
+            )}
+            <form onSubmit={handleSaveEdit} className="space-y-3">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Name"
+                required
+                className="w-full bg-bg-tertiary/40 border border-white/8 rounded-sm p-3 outline-none text-text-primary focus:border-accent"
+              />
+              <input
+                type="text"
+                value={editArea}
+                onChange={(e) => setEditArea(e.target.value)}
+                placeholder="Area"
+                required
+                className="w-full bg-bg-tertiary/40 border border-white/8 rounded-sm p-3 outline-none text-text-primary focus:border-accent"
+              />
+              <input
+                type="text"
+                value={editAddress}
+                onChange={(e) => setEditAddress(e.target.value)}
+                placeholder="Address"
+                className="w-full bg-bg-tertiary/40 border border-white/8 rounded-sm p-3 outline-none text-text-primary focus:border-accent"
+              />
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Description"
+                rows={3}
+                className="w-full bg-bg-tertiary/40 border border-white/8 rounded-sm p-3 outline-none text-text-primary focus:border-accent resize-none"
+              />
+              <button
+                type="submit"
+                disabled={editSaving}
+                className="w-full bg-accent hover:bg-accent-hover text-white font-bold py-3 rounded-sm disabled:opacity-50 cursor-pointer"
+              >
+                {editSaving ? 'Saving…' : 'Save Changes'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {selectedAddDishRest && (
         <AddDishModal
           restaurantId={selectedAddDishRest.id}
@@ -228,7 +375,6 @@ export default function MySpotsPage() {
         />
       )}
 
-      {/* Community Ratings, Reviews & Comments Modal */}
       {selectedReviewSpot && (
         <ReviewModal
           isOpen={!!selectedReviewSpot}

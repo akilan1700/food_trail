@@ -1,14 +1,15 @@
 // File: src/app/settings/page.tsx
-// Description: User Settings page enabling updates to user name, notifications, theme, and profile details.
+// Description: User Settings page enabling updates to user name, notifications, theme, profile details, and account deletion.
 // Author: Akilan M
 // Created: 2026-08-13T11:42:00+05:30
+// Updated: 2026-09-11
 
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../services/hooks';
-import { selectCurrentUser, updateUserSettings } from '../services/authSlice';
-import { updateProfile, executeQueuedMutation } from '../services/api';
+import { selectCurrentUser, updateUserSettings, clearCredentials } from '../services/authSlice';
+import { updateProfile, executeQueuedMutation, deleteAccount, logoutUser } from '../services/api';
 import { usePwaInstall, useNetworkStatus, triggerHaptic } from '../services/usePwa';
 import { clearOfflineQueue } from '../services/offlineSync';
 import LoadingScreen from '../components/LoadingScreen';
@@ -27,12 +28,6 @@ export default function SettingsPage() {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => {
-    if (!user) {
-      router.push('/login');
-    }
-  }, [user, router]);
-
   // Form states initialized from user object
   const [name, setName] = useState(user?.name || '');
   const [notifications, setNotifications] = useState(user?.settings?.notificationsEnabled ?? true);
@@ -48,9 +43,16 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cacheCleared, setCacheCleared] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const { isInstallable, isStandalone, triggerInstall } = usePwaInstall();
   const { isOnline, pendingCount, syncing, syncNow } = useNetworkStatus(executeQueuedMutation);
+
+  useEffect(() => {
+    if (!user) {
+      router.replace('/login');
+    }
+  }, [user, router]);
 
   // Sync state if user loads or updates after mount
   useEffect(() => {
@@ -68,6 +70,34 @@ export default function SettingsPage() {
       });
     }
   }, [user]);
+
+  /**
+   * Permanently deletes the authenticated account after confirmation.
+   */
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Delete your FoodTrail account permanently? This cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    setDeletingAccount(true);
+    setError(null);
+    try {
+      await deleteAccount();
+      try {
+        await logoutUser();
+      } catch {
+        // Cookie may already be cleared by account deletion
+      }
+      dispatch(clearCredentials());
+      router.replace('/login');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete account.';
+      setError(message);
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   /**
    * Resets the local form states to match the current Redux user state
@@ -235,7 +265,7 @@ export default function SettingsPage() {
               <input
                 type="email"
                 disabled
-                value={user.email}
+                value={user.email || ''}
                 className="w-full bg-bg-tertiary/20 border border-white/5 rounded-sm p-3 text-text-muted cursor-not-allowed"
               />
             </div>
@@ -313,8 +343,10 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between p-3.5 bg-bg-tertiary/20 rounded-sm border border-white/5">
                 <div className="flex flex-col text-left">
-                  <span className="font-semibold text-text-primary text-sm">Push notifications</span>
-                  <span className="text-xs text-text-secondary mt-0.5">Receive updates on trail status and community reviews.</span>
+                  <span className="font-semibold text-text-primary text-sm">Notification preference</span>
+                  <span className="text-xs text-text-secondary mt-0.5">
+                    Saved preference only — live push notifications are not enabled yet.
+                  </span>
                 </div>
                 <label className={`relative inline-flex items-center select-none ${isEditing ? 'cursor-pointer' : 'cursor-default'}`}>
                   <input
@@ -447,6 +479,29 @@ export default function SettingsPage() {
           </button>
         )}
       </form>
+
+      <div className="mt-8 glass-panel p-6 md:p-8 border border-status-red/20">
+        <h2 className="text-lg font-bold text-status-red flex items-center gap-2 mb-2">
+          <Trash2 className="w-4.5 h-4.5" />
+          <span>Danger Zone</span>
+        </h2>
+        <p className="text-sm text-text-secondary mb-4">
+          Permanently delete your account and associated profile data. This action cannot be undone.
+        </p>
+        <button
+          type="button"
+          disabled={deletingAccount}
+          onClick={handleDeleteAccount}
+          className="bg-status-red/15 border border-status-red/30 text-status-red hover:bg-status-red hover:text-white px-4 py-2.5 rounded-sm text-sm font-bold cursor-pointer transition-all disabled:opacity-50 flex items-center gap-2"
+        >
+          {deletingAccount ? (
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <Trash2 className="w-4 h-4" />
+          )}
+          <span>{deletingAccount ? 'Deleting…' : 'Delete Account'}</span>
+        </button>
+      </div>
     </div>
   );
 }

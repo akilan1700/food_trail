@@ -1,73 +1,205 @@
+/*
+File: src/app/globals.css
+Description: Admin design system — Tailwind v4 theme, warmer palette, high-contrast buttons.
+Author: Akilan M
+Updated: 2026-09-11
+*/
+
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --bg-primary: #0a0d14;
-    --bg-secondary: #101522;
-    --bg-tertiary: #182032;
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --accent: #f18024;
-    --accent-hover: #d96b14;
-    --admin-gold: #f6e132;
-    --admin-teal: #348f91;
-    --status-green: #10b981;
-    --status-orange: #f18024;
-    --status-red: #ef4444;
-  }
+:root {
+  /* Warm navy base — not pure black/white */
+  --bg-primary: #12151c;
+  --bg-secondary: #1a2030;
+  --bg-tertiary: #243044;
+  --surface: #1e2740;
+  --text-primary: #fff7ed;
+  --text-secondary: #d6c4b0;
+  --text-muted: #9a8b7a;
+  --accent: #f18024;
+  --accent-hover: #ff9a45;
+  --accent-soft: rgba(241, 128, 36, 0.18);
+  --teal: #3aa8ab;
+  --teal-hover: #2f8f92;
+  --teal-soft: rgba(58, 168, 171, 0.18);
+  --gold: #f6c84c;
+  --border-subtle: rgba(241, 128, 36, 0.16);
+  --border-strong: rgba(241, 128, 36, 0.35);
+  --status-green: #34d399;
+  --status-orange: #f18024;
+  --status-red: #f87171;
+}
 
+@theme {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-surface: var(--surface);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-teal: var(--teal);
+  --color-teal-hover: var(--teal-hover);
+  --color-teal-soft: var(--teal-soft);
+
+  --color-gold: var(--gold);
+  --color-status-green: var(--status-green);
+  --color-status-orange: var(--status-orange);
+  --color-status-red: var(--status-red);
+}
+
+@layer base {
   body {
-    background-color: var(--bg-primary);
+    background:
+      radial-gradient(ellipse 90% 60% at 10% -10%, rgba(241, 128, 36, 0.14), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 100% 0%, rgba(58, 168, 171, 0.12), transparent 50%),
+      var(--bg-primary);
     color: var(--text-primary);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
 .glass-panel {
-  background: rgba(16, 21, 34, 0.75);
+  background: rgba(30, 39, 64, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
 }
 
 .glass-card {
-  background: rgba(24, 32, 50, 0.6);
+  background: rgba(36, 48, 68, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
 }
 
 .glass-card:hover {
-  border-color: rgba(241, 128, 36, 0.35);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  border-color: var(--border-strong);
+  box-shadow: 0 10px 28px rgba(241, 128, 36, 0.12);
 }
 
 .gold-badge {
-  background: #2a2010;
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: #fcd34d;
+  background: rgba(246, 200, 76, 0.12);
+  border: 1px solid rgba(246, 200, 76, 0.45);
+  color: var(--gold);
 }
 
-/* Custom Scrollbar */
+/* High-contrast action buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: 0.65rem;
+  background: linear-gradient(180deg, #ff9a45 0%, #f18024 100%);
+  color: #1a1208;
+  font-weight: 800;
+  font-size: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 6px 18px rgba(241, 128, 36, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: 0.65rem;
+  background: var(--teal-soft);
+  color: #d8f6f7;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border: 1px solid rgba(58, 168, 171, 0.55);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(58, 168, 171, 0.28);
+  border-color: var(--teal);
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: 0.65rem;
+  background: rgba(248, 113, 113, 0.16);
+  color: #fecaca;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-danger:hover {
+  background: rgba(248, 113, 113, 0.28);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.65rem;
+  background: rgba(255, 247, 237, 0.06);
+  color: var(--text-secondary);
+  font-weight: 650;
+  font-size: 0.75rem;
+  border: 1px solid rgba(255, 247, 237, 0.14);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 247, 237, 0.12);
+  color: var(--text-primary);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(10, 13, 20, 0.6);
+  background: rgba(18, 21, 28, 0.6);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(241, 128, 36, 0.35);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(241, 128, 36, 0.55);
 }
 
 @keyframes fadeIn {

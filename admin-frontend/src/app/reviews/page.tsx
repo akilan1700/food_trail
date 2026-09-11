@@ -146,7 +146,7 @@ export default function AdminReviewsPage() {
                         type="button"
                         disabled={deletingId === review._id}
                         onClick={() => handleDelete(review)}
-                        className="px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-400 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        className="btn-danger disabled:opacity-50"
                       >
                         {deletingId === review._id ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />

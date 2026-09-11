@@ -78,17 +78,11 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <Link
-            href="/dishes"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs shadow-lg transition-all"
-          >
-            <Sparkles className="w-4 h-4 text-black" />
+          <Link href="/dishes" className="btn-secondary">
+            <Sparkles className="w-4 h-4" />
             <span>Curate Signature Dishes</span>
           </Link>
-          <Link
-            href="/restaurants"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-lg transition-all"
-          >
+          <Link href="/restaurants" className="btn-primary">
             <PlusCircle className="w-4 h-4" />
             <span>Add Spot</span>
           </Link>

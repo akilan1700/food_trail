@@ -246,7 +246,7 @@ export default function AdminRestaurantsPage() {
         <button
           type="button"
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent hover:bg-accent-hover text-white font-bold text-xs shadow-lg shadow-accent/20 transition-all cursor-pointer self-start sm:self-auto"
+          className="btn-primary self-start sm:self-auto"
         >
           <PlusCircle className="w-4 h-4" />
           <span>Add New Spot</span>
@@ -619,14 +619,14 @@ export default function AdminRestaurantsPage() {
                   type="button"
                   onClick={() => setModalOpen(false)}
                   disabled={submitting}
-                  className="flex-1 py-2.5 bg-bg-tertiary hover:bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                  className="btn-ghost flex-1"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 bg-accent hover:bg-accent-hover text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-2 cursor-pointer"
+                  className="btn-primary flex-1"
                 >
                   {submitting ? (
                     <>

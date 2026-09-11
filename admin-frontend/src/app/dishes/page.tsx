@@ -254,9 +254,9 @@ export default function AdminDishesPage() {
           type="button"
           onClick={openCreateModal}
           disabled={restaurants.length === 0}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-black text-xs shadow-lg transition-all cursor-pointer self-start sm:self-auto"
+          className="btn-primary self-start sm:self-auto disabled:opacity-50"
         >
-          <PlusCircle className="w-4 h-4 text-black" />
+          <PlusCircle className="w-4 h-4" />
           <span>Add Signature Dish</span>
         </button>
       </div>
@@ -592,18 +592,18 @@ export default function AdminDishesPage() {
                   type="button"
                   onClick={() => setModalOpen(false)}
                   disabled={submitting}
-                  className="flex-1 py-2.5 bg-bg-tertiary hover:bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                  className="btn-ghost flex-1"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-black rounded-lg text-xs font-black transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                  className="btn-primary flex-1"
                 >
                   {submitting ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin text-black" />
+                      <Loader2 className="w-4 h-4 animate-spin" />
                       <span>Saving...</span>
                     </>
                   ) : (

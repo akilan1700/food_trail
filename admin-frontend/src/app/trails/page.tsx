@@ -222,7 +222,7 @@ export default function AdminTrailsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full bg-accent hover:bg-accent-hover text-white font-bold py-3 rounded-lg disabled:opacity-50 cursor-pointer"
+                className="btn-primary w-full disabled:opacity-50"
               >
                 {saving ? 'Saving…' : 'Save Changes'}
               </button>

@@ -7,7 +7,7 @@
 
 import React, { useState, FormEvent } from 'react';
 import { useAdminAuth } from '../../services/adminAuthContext';
-import { Shield, KeyRound, Mail, Loader2, Lock } from 'lucide-react';
+import { KeyRound, Mail, Loader2, Lock } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const { login } = useAdminAuth();
@@ -44,11 +44,12 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-bg-primary">
-      <div className="w-full max-w-md bg-bg-secondary border border-white/10 rounded-2xl p-8 glass-panel shadow-2xl relative overflow-hidden animate-fade-in">
+      <div className="w-full max-w-md bg-bg-secondary border border-accent/25 rounded-2xl p-8 glass-panel shadow-2xl relative overflow-hidden animate-fade-in">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex p-3 rounded-2xl bg-accent text-white shadow-lg mb-3">
-            <Shield className="w-8 h-8" />
+          <div className="inline-flex mb-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="FoodTrail" width={56} height={56} className="mx-auto" />
           </div>
           <h1 className="text-2xl font-black text-text-primary tracking-tight">Admin Console</h1>
           <p className="text-xs text-text-secondary mt-1">
@@ -104,7 +105,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-accent hover:bg-accent-hover text-white text-sm font-bold rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+            className="btn-primary w-full mt-2 disabled:opacity-60"
           >
             {loading ? (
               <>

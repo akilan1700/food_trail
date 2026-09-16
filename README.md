@@ -1,20 +1,55 @@
-# FoodTrail
+<!--
+File: README.md
+Description: FoodTrail project overview, setup guide, and documentation with brand logo.
+Author: Akilan M
+Updated: 2026-09-16
+-->
 
-**Discover signature dishes and curated walkable food trails near you.**
+<p align="center">
+  <img src="./frontend/public/logo.svg" alt="FoodTrail logo" width="128" height="128" />
+</p>
 
-FoodTrail is a mobile-first PWA for food discovery: search dishes, explore walking routes between spots, build your own trip, and share trails with friends. Works offline-friendly as an installable app on your home screen.
+<h1 align="center">FoodTrail</h1>
+
+<p align="center">
+  <strong>Discover signature dishes &amp; curated walkable food trails near you</strong>
+</p>
+
+<p align="center">
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-ISC-blue.svg" alt="License: ISC" /></a>
+  <img src="https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs&logoColor=white" alt="Next.js" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/Node.js-Express-339933?logo=nodedotjs&logoColor=white" alt="Node.js" />
+  <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/PWA-Installable-f18024" alt="PWA" />
+</p>
+
+<p align="center">
+  Mobile-first food discovery PWA — search dishes, walk curated trails,<br />
+  build your trip, and share routes with friends. Offline-friendly.
+</p>
+
+<p align="center">
+  <a href="#-quick-start"><strong>Quick start</strong></a> ·
+  <a href="#-features"><strong>Features</strong></a> ·
+  <a href="#-tech-stack"><strong>Tech stack</strong></a> ·
+  <a href="./DEPLOYMENT.md"><strong>Deploy</strong></a> ·
+  <a href="./LICENSE"><strong>License</strong></a>
+</p>
 
 ---
 
 ## Features
 
-- **Dish search** — Find signature dishes and nearby dining spots
-- **Walking trails** — Browse and follow curated walkable food routes
-- **My Trip** — Save spots and trails into a personal walking itinerary
-- **Add spot** — Pin new food spots with photos and details
-- **Share** — Share trails and trips (including WhatsApp-friendly links)
-- **PWA** — Installable, offline-aware Progressive Web App
-- **Admin panel** — Moderate spots, dishes, trails, and users
+| | Feature | What you get |
+|---|---------|--------------|
+| 🍽️ | **Dish search** | Find signature dishes and nearby dining spots |
+| 🚶 | **Walking trails** | Browse and follow curated walkable food routes |
+| 🗺️ | **My Trip** | Save spots & trails into a personal walking itinerary |
+| 📍 | **Add spot** | Pin new food spots with photos and details |
+| 📤 | **Share** | Share trails and trips (WhatsApp-friendly links) |
+| 📱 | **PWA** | Installable, offline-aware Progressive Web App |
+| 🛡️ | **Admin panel** | Moderate spots, dishes, trails, and users |
 
 ---
 
@@ -22,12 +57,32 @@ FoodTrail is a mobile-first PWA for food discovery: search dishes, explore walki
 
 | Layer | Stack |
 |-------|--------|
-| User app | Next.js 16, React 19, TypeScript, Tailwind CSS, Redux Toolkit |
-| Admin app | Next.js 16, React 19, TypeScript, Tailwind CSS |
-| API | Node.js, Express, MongoDB (Mongoose), JWT cookies |
-| Media | Cloudinary |
-| Email | Brevo (OTP / verification) |
-| Deploy | Cloudflare Pages (frontend), Render (API + admin), MongoDB Atlas |
+| **User app** | Next.js 16 · React 19 · TypeScript · Tailwind CSS · Redux Toolkit |
+| **Admin app** | Next.js 16 · React 19 · TypeScript · Tailwind CSS |
+| **API** | Node.js · Express · MongoDB (Mongoose) · JWT cookies |
+| **Media** | Cloudinary |
+| **Email** | Brevo (OTP / verification) |
+| **Deploy** | Cloudflare Pages · Render · MongoDB Atlas |
+
+---
+
+## Architecture
+
+```
+┌──────────────────────────────────────────────┐
+│           User Browser / PWA                 │
+│              (frontend/)                     │
+└──────────────────────┬───────────────────────┘
+                       │ HTTPS
+                       ▼
+┌──────────────────────────────────────────────┐      ┌─────────────────────┐
+│           Backend API (Express)              │◄────┤   Admin Panel       │
+│              (backend/)                      │      │  (admin-frontend/)  │
+└──────┬───────────────┬────────────────┬──────┘      └─────────────────────┘
+       │               │                │
+       ▼               ▼                ▼
+  MongoDB Atlas   Cloudinary CDN    Brevo Email
+```
 
 ---
 
@@ -35,16 +90,17 @@ FoodTrail is a mobile-first PWA for food discovery: search dishes, explore walki
 
 ```
 food_trail/
-├── frontend/          # User-facing PWA (Next.js)
-├── admin-frontend/    # Admin dashboard (Next.js)
-├── backend/           # REST API (Express + MongoDB)
+├── frontend/          # User-facing PWA (Next.js)     → :3000
+├── admin-frontend/    # Admin dashboard (Next.js)     → :3001
+├── backend/           # REST API (Express + MongoDB)   → :5001
 ├── DEPLOYMENT.md      # Production deployment guide
 ├── render.yaml        # Render blueprint
-└── LICENSE            # ISC License
+├── LICENSE            # ISC License
+└── README.md
 ```
 
-| Path | Default port | Role |
-|------|--------------|------|
+| Path | Port | Role |
+|------|------|------|
 | `frontend/` | `3000` | User PWA — search, trails, trip, spots |
 | `admin-frontend/` | `3001` | Admin dashboard |
 | `backend/` | `5001` | REST API |
@@ -55,8 +111,8 @@ food_trail/
 
 - **Node.js** 20+ (LTS recommended)
 - **npm** 10+
-- **MongoDB** running locally, or a MongoDB Atlas URI
-- Optional for full local parity: Cloudinary + Brevo credentials
+- **MongoDB** locally, or a MongoDB Atlas URI
+- Optional: Cloudinary + Brevo credentials (uploads & email OTP)
 
 ---
 
@@ -79,15 +135,21 @@ cp admin-frontend/.env.example admin-frontend/.env.local
 
 Edit `backend/.env` and set at least:
 
-- `MONGO_URI` — MongoDB connection string
-- `JWT_SECRET` — long random secret (required before any real deploy)
-- `FRONTEND_URL` / `ADMIN_FRONTEND_URL` — CORS origins for local apps
+| Variable | Purpose |
+|----------|---------|
+| `MONGO_URI` | MongoDB connection string |
+| `JWT_SECRET` | Long random secret (required before real deploy) |
+| `FRONTEND_URL` | User app origin (CORS / cookies) |
+| `ADMIN_FRONTEND_URL` | Admin app origin |
 
 Optional: Cloudinary and Brevo keys for uploads and email OTP.
 
-### 3. Install & run (three terminals)
+### 3. Install & run
 
-**Backend**
+Open **three terminals**:
+
+<details>
+<summary><strong>Backend</strong> — port 5001</summary>
 
 ```bash
 cd backend
@@ -95,7 +157,10 @@ npm install
 npm run dev
 ```
 
-**User frontend**
+</details>
+
+<details>
+<summary><strong>User frontend</strong> — port 3000</summary>
 
 ```bash
 cd frontend
@@ -103,7 +168,10 @@ npm install
 npm run dev
 ```
 
-**Admin frontend**
+</details>
+
+<details>
+<summary><strong>Admin frontend</strong> — port 3001</summary>
 
 ```bash
 cd admin-frontend
@@ -111,11 +179,13 @@ npm install
 npm run dev
 ```
 
+</details>
+
 | App | URL |
 |-----|-----|
-| User PWA | http://localhost:3000 |
-| Admin | http://localhost:3001 |
-| API | http://localhost:5001 |
+| User PWA | [http://localhost:3000](http://localhost:3000) |
+| Admin | [http://localhost:3001](http://localhost:3001) |
+| API | [http://localhost:5001](http://localhost:5001) |
 
 ---
 
@@ -139,47 +209,58 @@ npm run dev
 
 ### Frontends
 
-| Variable | App | Description |
-|----------|-----|-------------|
+| Variable | Apps | Description |
+|----------|------|-------------|
 | `NEXT_PUBLIC_API_URL` | `frontend`, `admin-frontend` | API base URL (e.g. `http://localhost:5001/api`) |
 
-**Never commit real secrets.** Keep `.env` / `.env.local` out of git.
+> **Security:** Never commit real secrets. Keep `.env` / `.env.local` out of git.
 
 ---
 
 ## Auth model
 
-- User and admin sessions use **HttpOnly cookies** (`token` / `admin_token`)
-- Mutating user APIs (create spot/dish/trail, upload, busy/photo updates) require authentication
-- Spot photo / busy / update / delete require **owner or admin**
-- Admins are **not** auto-seeded — create them manually in MongoDB (see [DEPLOYMENT.md](./DEPLOYMENT.md))
+| Rule | Detail |
+|------|--------|
+| Sessions | HttpOnly cookies (`token` / `admin_token`) |
+| Mutations | Create spot/dish/trail, upload, busy/photo updates require auth |
+| Ownership | Spot photo / busy / update / delete → **owner or admin** |
+| Admins | Not auto-seeded — create manually in MongoDB ([DEPLOYMENT.md](./DEPLOYMENT.md)) |
 
 ---
 
 ## Scripts
 
+<table>
+<tr>
+<td width="50%" valign="top">
+
 ### Backend
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start API with nodemon |
-| `npm start` | Start API (production) |
-| `npm test` | Jest tests with coverage |
+| `npm run dev` | API with nodemon |
+| `npm start` | Production API |
+| `npm test` | Jest + coverage |
+
+</td>
+<td width="50%" valign="top">
 
 ### Frontend / Admin
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Next.js development server |
+| `npm run dev` | Next.js dev server |
 | `npm run build` | Production build |
-| `npm start` | Serve production build |
+| `npm start` | Serve build |
 | `npm run lint` | ESLint |
+
+</td>
+</tr>
+</table>
 
 ---
 
 ## Testing
-
-Backend only:
 
 ```bash
 cd backend
@@ -192,9 +273,7 @@ Update existing backend tests when changing covered behavior. Do not add new fro
 
 ## Production deploy
 
-Full runbook: **[DEPLOYMENT.md](./DEPLOYMENT.md)**
-
-Summary:
+Full runbook → **[DEPLOYMENT.md](./DEPLOYMENT.md)** · Blueprint → **[render.yaml](./render.yaml)**
 
 | Service | Host |
 |---------|------|
@@ -205,45 +284,37 @@ Summary:
 | Media | Cloudinary |
 | Email | Brevo |
 
-Blueprint: [render.yaml](./render.yaml)
-
 Set a strong `JWT_SECRET` before any production deploy.
 
 ---
 
 ## Contributing
 
-1. Follow existing folder layout and naming conventions
-2. Validate inputs; never log secrets or tokens
-3. Prefer small, focused changes
-4. Update backend Jest tests when API behavior changes
+1. Follow existing folder layout and naming conventions  
+2. Validate inputs; never log secrets or tokens  
+3. Prefer small, focused changes  
+4. Update backend Jest tests when API behavior changes  
 
 ---
 
 ## License
 
-This project is licensed under the **ISC License** — see [LICENSE](./LICENSE).
+<p align="center">
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-ISC-blue.svg" alt="License: ISC" /></a>
+</p>
+
+This project is licensed under the **[ISC License](./LICENSE)**.
 
 ```
-ISC License
-
 Copyright (c) 2026 Akilan M
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
 ---
 
-## Author
-
-**Akilan M** — [github.com/akilan1700](https://github.com/akilan1700)
+<p align="center">
+  <img src="./frontend/public/logo.svg" alt="FoodTrail" width="48" height="48" />
+  <br />
+  <strong>FoodTrail</strong> · Walk. Eat. Discover.
+  <br /><br />
+  Built by <a href="https://github.com/akilan1700"><strong>Akilan M</strong></a>
+</p>

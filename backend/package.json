@@ -3,6 +3,8 @@
   "name": "foodtrail-backend",
   "version": "1.0.0",
   "description": "Backend API for FoodTrail app",
+  "license": "ISC",
+  "author": "Akilan M",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

@@ -20,6 +20,27 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## PWA production verification
+
+FoodTrail is installable as a Progressive Web App. The service worker registers only in **production** builds (not during `npm run dev`).
+
+After deploying the static export over **HTTPS**:
+
+1. Chrome DevTools → Application → Manifest: no errors; 192 and 512 icons load.
+2. Application → Service Workers: `/sw.js` active with scope `/`.
+3. Lighthouse → Progressive Web App: installable / offline checks pass.
+4. Phone: Install to home screen; open in standalone; enable airplane mode and open cached routes (`/`, `/trails/`, `/trip/`).
+5. Settings → App & offline data: installed mode and sync state look correct.
+
+Local production smoke (static export):
+
+```bash
+npm run build
+npx --yes serve out
+```
+
+Then open the served URL and confirm `/manifest.json`, `/sw.js`, and `/icons/icon-192.png` return 200. Full install prompts still need a real HTTPS host.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

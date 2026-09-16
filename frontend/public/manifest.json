@@ -2,7 +2,7 @@
   "id": "/",
   "name": "FoodTrail — Walkable Food Trails & Dish Search",
   "short_name": "FoodTrail",
-  "description": "Discover signature dishes and curated walkable food trails near you. Offline-ready PWA for tourists and locals.",
+  "description": "Discover signature dishes and curated walkable food trails near you. Works offline. Add to your home screen.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

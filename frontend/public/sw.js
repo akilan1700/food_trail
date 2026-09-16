@@ -3,7 +3,7 @@
 // Author: Akilan M
 // Created: 2026-09-10T15:33:45+05:30
 
-const CACHE_NAME = 'foodtrail-cache-v6';
+const CACHE_NAME = 'foodtrail-cache-v7';
 
 // Core routes and static assets to precache during install (trailingSlash-aligned)
 const PRECACHE_ASSETS = [
@@ -14,6 +14,7 @@ const PRECACHE_ASSETS = [
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/trails/',
+  '/trails/create/',
   '/trip/',
   '/my-spots/',
   '/add-spot/',
@@ -97,9 +98,11 @@ self.addEventListener('fetch', (event) => {
 
   // 3. Completely BYPASS all API calls and backend routes from Service Worker interception
   // This guarantees live API calls are never blocked, buffered, or altered when online.
+  // Also bypass the service worker script itself so updates are never served from Cache Storage.
   if (
     url.pathname.startsWith('/api') ||
     url.pathname.startsWith('/upload') ||
+    url.pathname === '/sw.js' ||
     url.port === '5001'
   ) {
     return;

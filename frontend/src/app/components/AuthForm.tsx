@@ -105,7 +105,7 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
         setOtpStep(true);
         setInfo('If an account exists for this email, a verification code has been sent.');
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Unable to start MPIN reset. Please try again.';
+        const message = err instanceof Error ? err.message : 'Unable to start PIN reset. Please try again.';
         setError(message);
       } finally {
         setLoading(false);
@@ -114,7 +114,7 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
     }
 
     if (!mpin || (mpin.length !== 4 && mpin.length !== 6)) {
-      setError('MPIN must be a 4-digit or 6-digit number.');
+      setError('PIN must be 4 or 6 digits.');
       return;
     }
 
@@ -174,7 +174,7 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
       setResetMpinStep(true);
       setOtpStep(false);
       setError(null);
-      setInfo('Enter your new MPIN to finish resetting.');
+      setInfo('Enter your new PIN to finish resetting.');
       return;
     }
 
@@ -212,7 +212,7 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
   const handleResetMpinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMpin || (newMpin.length !== 4 && newMpin.length !== 6)) {
-      setError('MPIN must be a 4-digit or 6-digit number.');
+      setError('PIN must be 4 or 6 digits.');
       return;
     }
     if (!otpCode || otpCode.length !== 6) {
@@ -230,9 +230,9 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
       setOtpCode('');
       setNewMpin('');
       setMpin('');
-      setInfo('MPIN updated successfully. You can log in with your new MPIN.');
+      setInfo('PIN updated successfully. You can log in with your new PIN.');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unable to reset MPIN. Please try again.';
+      const message = err instanceof Error ? err.message : 'Unable to reset PIN. Please try again.';
       setError(message);
     } finally {
       setLoading(false);
@@ -277,10 +277,10 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
           <div className="text-center mb-6">
             <h2 className="text-2xl font-extrabold text-text-primary flex justify-center items-center gap-2">
               <Sparkles className="w-5 h-5 text-accent animate-pulse" />
-              <span>Set New MPIN</span>
+              <span>Set New PIN</span>
             </h2>
             <p className="text-sm text-text-secondary mt-1 leading-relaxed">
-              Choose a new 4 or 6-digit MPIN for <strong className="text-text-primary">{otpEmail}</strong>.
+              Choose a new 4 or 6-digit PIN for <strong className="text-text-primary">{otpEmail}</strong>.
             </p>
           </div>
 
@@ -298,7 +298,7 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
 
           <form onSubmit={handleResetMpinSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5 text-left">
-              <label htmlFor="auth-new-mpin" className="text-xs uppercase tracking-wider text-text-secondary font-semibold">New MPIN</label>
+              <label htmlFor="auth-new-mpin" className="text-xs uppercase tracking-wider text-text-secondary font-semibold">New PIN</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                 <input
@@ -324,7 +324,7 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                <span>Update MPIN</span>
+                <span>Update PIN</span>
               )}
             </button>
 
@@ -432,10 +432,10 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
           <div className="text-center mb-6">
             <h2 className="text-2xl font-extrabold text-text-primary flex justify-center items-center gap-2">
               <Sparkles className="w-5 h-5 text-accent animate-pulse" />
-              <span>Forgot MPIN</span>
+              <span>Forgot PIN</span>
             </h2>
             <p className="text-sm text-text-secondary mt-1">
-              Enter your registered email and we will send a verification code to reset your MPIN.
+              Enter your registered email and we will send a verification code to reset your PIN.
             </p>
           </div>
 
@@ -525,8 +525,8 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
           </h2>
           <p className="text-sm text-text-secondary mt-1">
             {mode === 'login'
-              ? 'Enter your registered email and MPIN to log in.'
-              : 'Fill in your name, email, and choose a 4 or 6-digit MPIN.'}
+              ? 'Enter your registered email and PIN to log in.'
+              : 'Fill in your name, email, and choose a 4 or 6-digit PIN.'}
           </p>
         </div>
 
@@ -579,7 +579,7 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="auth-mpin" className="text-xs uppercase tracking-wider text-text-secondary font-semibold">
-              {mode === 'signup' ? 'Choose MPIN (4 or 6 digits)' : 'Enter MPIN'}
+              {mode === 'signup' ? 'Choose PIN (4 or 6 digits)' : 'Enter PIN'}
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
@@ -604,7 +604,7 @@ export default function AuthForm({ onSuccess, defaultMode = 'login' }: AuthFormP
               onClick={handleEnterForgot}
               className="self-end text-xs text-accent hover:text-accent-hover font-semibold cursor-pointer bg-transparent border-none"
             >
-              Forgot MPIN?
+              Forgot PIN?
             </button>
           )}
 

@@ -117,7 +117,7 @@ export default function MyTripPage() {
       window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
     } catch (error) {
       console.error('Error sharing trip:', error);
-      alert('Error connecting to backend server or generating share link.');
+      alert('Couldn\'t create a share link. Please try again.');
     } finally {
       setShareLoading(false);
     }
@@ -252,7 +252,7 @@ export default function MyTripPage() {
                 title="Prevent screen from sleeping while walking"
               >
                 {isWakeLocked ? <Sun className="w-4 h-4 text-accent animate-pulse" /> : <SunMedium className="w-4 h-4" />}
-                <span>{isWakeLocked ? 'Screen Awake: ON' : 'Keep Screen Awake'}</span>
+                <span>{isWakeLocked ? 'Screen awake: On' : 'Keep screen awake'}</span>
               </button>
             )}
 
@@ -391,7 +391,7 @@ export default function MyTripPage() {
                               loadSavedTripData();
                             } catch (err) {
                               console.error('Photo db association error:', err);
-                              alert('Photo uploaded successfully to Drive, but failed to link in Database.');
+                              alert('Photo uploaded, but we couldn\'t save it to your trip. Please try again.');
                             }
                           }}
                         />
@@ -408,7 +408,7 @@ export default function MyTripPage() {
           <Bookmark className="w-16 h-16 text-text-muted mx-auto mb-4 shrink-0" />
           <h3 className="text-2xl font-bold mb-2">Your saved list is empty</h3>
           <p className="text-text-secondary text-[0.95rem] mb-6 max-w-[420px] mx-auto">
-            Star cafes and bakery dishes on the search page or save entire curated trails to build your custom walking route.
+            Save cafes and bakery dishes on the search page or save entire curated trails to build your custom walking route.
           </p>
           <Link href="/">
             <button type="button" className="bg-accent text-white border-none rounded-sm px-6 py-3 font-bold cursor-pointer transition-all duration-300 hover:bg-accent-hover">

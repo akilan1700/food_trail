@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'FoodTrail - Walkable Food Trails & Dish Search',
-  description: 'Find top dishes & walkable food trails in your area. Works seamlessly offline and as an installable PWA.',
+  description: 'Find top dishes & walkable food trails in your area. Works offline. Add to your home screen.',
   manifest: '/manifest.json',
   applicationName: 'FoodTrail',
   icons: {
@@ -92,7 +92,7 @@ export default function RootLayout({
             
             <footer className="hidden md:block p-8 md:px-6 text-center border-t border-white/8 text-text-muted text-xs md:text-sm bg-bg-secondary">
               <p>© {new Date().getFullYear()} FoodTrail. Designed for walking food tours.</p>
-              <p style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}>PWA Installable App for tourists & locals.</p>
+              <p style={{ marginTop: '0.25rem', fontSize: '0.75rem' }}>Works offline. Add to your home screen.</p>
             </footer>
           </div>
         </StoreProvider>

@@ -82,7 +82,7 @@ export default function TrailCreator({ allRestaurants, onSuccess, onCancel }: Tr
       onSuccess(newTrail);
     } catch (error) {
       console.error('Failed to create trail:', error);
-      alert('Error creating trail in backend.');
+      alert('Couldn\'t create the trail. Please try again.');
     }
   };
 

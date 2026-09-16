@@ -114,7 +114,7 @@ describe('Authentication API Integration Tests', () => {
         .send({ email: 'registered@example.com', mpin: '999999' });
 
       expect(res.statusCode).toBe(401);
-      expect(res.body.error.message).toContain('Invalid email or MPIN');
+      expect(res.body.error.message).toContain('Invalid email or PIN');
     });
 
     test('should return 401 if user not registered', async () => {
@@ -123,7 +123,7 @@ describe('Authentication API Integration Tests', () => {
         .send({ email: 'nonexistent@example.com', mpin: '1234' });
 
       expect(res.statusCode).toBe(401);
-      expect(res.body.error.message).toContain('Invalid email or MPIN');
+      expect(res.body.error.message).toContain('Invalid email or PIN');
     });
   });
 

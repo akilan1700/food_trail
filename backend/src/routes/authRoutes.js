@@ -58,7 +58,7 @@ router.post('/signup', async (req, res, next) => {
     }
 
     if (!mpin || typeof mpin !== 'string' || !/^\d{4}$|^\d{6}$/.test(mpin)) {
-      return res.status(400).json({ error: { message: 'MPIN must be a 4-digit or 6-digit number' } });
+      return res.status(400).json({ error: { message: 'PIN must be 4 or 6 digits' } });
     }
 
     const trimmedEmail = email.trim().toLowerCase();
@@ -106,18 +106,18 @@ router.post('/login', async (req, res, next) => {
     }
 
     if (mpin === undefined || mpin === null || mpin === '') {
-      return res.status(400).json({ error: { message: 'MPIN is required' } });
+      return res.status(400).json({ error: { message: 'PIN is required' } });
     }
 
     const trimmedEmail = email.trim().toLowerCase();
     const user = await User.findOne({ email: trimmedEmail });
     if (!user) {
-      return res.status(401).json({ error: { message: 'Invalid email or MPIN' } });
+      return res.status(401).json({ error: { message: 'Invalid email or PIN' } });
     }
 
     const isMatch = user.compareMpin(mpin);
     if (!isMatch) {
-      return res.status(401).json({ error: { message: 'Invalid email or MPIN' } });
+      return res.status(401).json({ error: { message: 'Invalid email or PIN' } });
     }
 
     if (typeof user.upgradeMpinHashIfNeeded === 'function') {
@@ -296,7 +296,7 @@ router.post('/reset-mpin', async (req, res, next) => {
       return res.status(400).json({ error: { message: 'OTP is required' } });
     }
     if (!mpin || typeof mpin !== 'string' || !/^\d{4}$|^\d{6}$/.test(mpin)) {
-      return res.status(400).json({ error: { message: 'MPIN must be a 4-digit or 6-digit number' } });
+      return res.status(400).json({ error: { message: 'PIN must be 4 or 6 digits' } });
     }
 
     const trimmedEmail = email.trim().toLowerCase();
@@ -318,7 +318,7 @@ router.post('/reset-mpin', async (req, res, next) => {
     await user.save();
     await Otp.deleteMany({ email: trimmedEmail, type: 'reset_mpin' });
 
-    res.status(200).json({ message: 'MPIN updated successfully' });
+    res.status(200).json({ message: 'PIN updated successfully' });
   } catch (error) {
     next(error);
   }

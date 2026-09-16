@@ -246,7 +246,7 @@ export default function TrailsPage() {
                           title="Keep screen awake while following this walking trail"
                         >
                           {isWakeLocked ? <Sun className="w-3.5 h-3.5 text-accent animate-pulse" /> : <SunMedium className="w-3.5 h-3.5" />}
-                          <span>{isWakeLocked ? 'Screen On' : 'Screen Awake'}</span>
+                          <span>{isWakeLocked ? 'Screen awake: On' : 'Keep screen awake'}</span>
                         </button>
                       )}
                       <button

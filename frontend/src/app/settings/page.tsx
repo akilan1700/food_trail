@@ -378,7 +378,7 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-3 pt-3 border-t border-white/5">
                 <div className="flex items-center gap-2">
                   <Smartphone className="w-4 h-4 text-accent" />
-                  <span className="text-xs uppercase tracking-wider text-text-secondary font-bold">PWA &amp; Offline Storage</span>
+                  <span className="text-xs uppercase tracking-wider text-text-secondary font-bold">App &amp; offline data</span>
                 </div>
 
                 <div className="p-3.5 bg-bg-tertiary/30 rounded-sm border border-white/5 flex items-center justify-between gap-3 flex-wrap">
@@ -390,7 +390,7 @@ export default function SettingsPage() {
                     <p className="text-[0.7rem] text-text-secondary mt-0.5">
                       {pendingCount > 0
                         ? `${pendingCount} action(s) waiting in offline queue`
-                        : 'All data synchronized with cloud database'}
+                        : 'Everything is saved and up to date'}
                     </p>
                   </div>
 
@@ -435,7 +435,7 @@ export default function SettingsPage() {
                 {isStandalone && (
                   <div className="p-3 bg-status-green/10 border border-status-green/20 rounded-sm text-xs text-status-green flex items-center gap-2">
                     <Check className="w-4 h-4 shrink-0" />
-                    <span>Running in PWA Standalone App Mode</span>
+                    <span>Installed app mode</span>
                   </div>
                 )}
 
@@ -454,7 +454,7 @@ export default function SettingsPage() {
                     className="text-[0.7rem] text-text-muted hover:text-red-400 bg-transparent border-none cursor-pointer flex items-center gap-1 transition-colors"
                   >
                     <Trash2 className="w-3 h-3" />
-                    <span>{cacheCleared ? 'Cache Cleared!' : 'Clear Cache & Queue'}</span>
+                    <span>{cacheCleared ? 'Cleared!' : 'Clear saved offline data'}</span>
                   </button>
                 </div>
               </div>

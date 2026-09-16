@@ -115,7 +115,7 @@ export default function PwaInstallBanner() {
         <div className="bg-status-green/90 text-white pl-[max(1rem,var(--safe-area-left))] pr-[max(1rem,var(--safe-area-right))] py-2 text-xs font-semibold flex items-center justify-between shadow-md animate-fade-in backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>Back online! All queued offline actions were synchronized with the server.</span>
+            <span>Back online! Your saved changes were uploaded.</span>
           </div>
           <button
             type="button"

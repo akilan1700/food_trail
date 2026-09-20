@@ -8,8 +8,7 @@ export type OfflineMutationType =
   | 'CREATE_RESTAURANT'
   | 'CREATE_DISH'
   | 'COMPLETE_WALK'
-  | 'CREATE_TRAIL'
-  | 'UPDATE_BUSY_STATUS';
+  | 'CREATE_TRAIL';
 
 export interface OfflineMutationItem<T = unknown> {
   id: string;

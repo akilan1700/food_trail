@@ -19,6 +19,7 @@ import {
   formatPhotoUrl,
 } from '../../services/api';
 import PhotoUpload from '../../components/PhotoUpload';
+import ModalPortal from '../../components/ModalPortal';
 import {
   UtensilsCrossed,
   Sparkles,
@@ -464,156 +465,161 @@ export default function AdminDishesPage() {
 
       {/* Add / Edit Dish Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-lg bg-bg-secondary border border-white/10 rounded-2xl glass-panel shadow-2xl overflow-hidden animate-fade-in max-h-[90vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
-              <div>
-                <h3 className="text-base font-bold text-text-primary">
-                  {isEditing ? 'Edit Dish Details' : 'Add Signature Menu Dish'}
-                </h3>
-                <p className="text-xs text-text-secondary">
-                  Curate dining dishes and mark signature status for spots
-                </p>
-              </div>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-white/5 transition-all cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
-              {/* Select Restaurant */}
-              <div>
-                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                  Associated Restaurant <span className="text-accent">*</span>
-                </label>
-                <select
-                  required
-                  value={formRestaurantId}
-                  onChange={(e) => setFormRestaurantId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent font-medium"
-                >
-                  <option value="" disabled>
-                    Select registered spot
-                  </option>
-                  {restaurants.map((r) => (
-                    <option key={r._id} value={r._id}>
-                      {r.name} ({r.area})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Name & Price */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                    Dish Name <span className="text-accent">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Traditional Filter Coffee"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
-                  />
-                </div>
+        <ModalPortal>
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm p-4 sm:p-6 flex min-h-screen items-center justify-center animate-fade-in">
+            <div className="relative w-full max-w-2xl bg-bg-secondary border border-white/10 rounded-2xl glass-panel shadow-2xl overflow-hidden animate-fade-in my-auto flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3.5rem)]">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 bg-bg-secondary/95 backdrop-blur-md shrink-0 sticky top-0 z-20">
                 <div>
-                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                    Price (₹) <span className="text-accent">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    placeholder="120"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
-                  />
+                  <h3 className="text-base font-bold text-text-primary">
+                    {isEditing ? 'Edit Dish Details' : 'Add Signature Menu Dish'}
+                  </h3>
+                  <p className="text-xs text-text-secondary">
+                    Curate dining dishes and mark signature status for spots
+                  </p>
                 </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                  Description / Taste Notes
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Special spices, roasting method, texture, or recommendations..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent resize-none"
-                />
-              </div>
-
-              {/* Signature Toggle Checkbox */}
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <input
-                  type="checkbox"
-                  id="modalIsSignature"
-                  checked={isSignature}
-                  onChange={(e) => setIsSignature(e.target.checked)}
-                  className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 bg-bg-tertiary border-white/10 cursor-pointer"
-                />
-                <label
-                  htmlFor="modalIsSignature"
-                  className="text-xs font-bold text-amber-300 select-none cursor-pointer flex items-center gap-1.5"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Mark as Official Signature / Must-Have Dish</span>
-                </label>
-              </div>
-
-              {/* Photo Upload */}
-              <PhotoUpload
-                folder="dishes"
-                value={photoUrl}
-                onUploadSuccess={(url) => setPhotoUrl(url)}
-                onClear={() => setPhotoUrl('')}
-                label="Dish Photo"
-              />
-
-              {errorMsg && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-medium text-red-400">
-                  {errorMsg}
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  disabled={submitting}
-                  className="btn-ghost flex-1"
+                  className="p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-white/5 transition-all cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn-primary flex-1"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>{isEditing ? 'Save Changes' : 'Create Signature Dish'}</span>
-                  )}
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                <div className="p-6 space-y-4 overflow-y-auto overscroll-contain flex-1">
+                  {/* Select Restaurant */}
+                  <div>
+                    <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                      Associated Restaurant <span className="text-accent">*</span>
+                    </label>
+                    <select
+                      required
+                      value={formRestaurantId}
+                      onChange={(e) => setFormRestaurantId(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent font-medium"
+                    >
+                      <option value="" disabled>
+                        Select registered spot
+                      </option>
+                      {restaurants.map((r) => (
+                        <option key={r._id} value={r._id}>
+                          {r.name} ({r.area})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Name & Price */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                        Dish Name <span className="text-accent">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Traditional Filter Coffee"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                        Price (₹) <span className="text-accent">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        required
+                        placeholder="120"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                      Description / Taste Notes
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Special spices, roasting method, texture, or recommendations..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full px-3.5 py-2 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent resize-none"
+                    />
+                  </div>
+
+                  {/* Signature Toggle Checkbox */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <input
+                      type="checkbox"
+                      id="modalIsSignature"
+                      checked={isSignature}
+                      onChange={(e) => setIsSignature(e.target.checked)}
+                      className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 bg-bg-tertiary border-white/10 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="modalIsSignature"
+                      className="text-xs font-bold text-amber-300 select-none cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Mark as Official Signature / Must-Have Dish</span>
+                    </label>
+                  </div>
+
+                  {/* Photo Upload */}
+                  <PhotoUpload
+                    folder="dishes"
+                    value={photoUrl}
+                    onUploadSuccess={(url) => setPhotoUrl(url)}
+                    onClear={() => setPhotoUrl('')}
+                    label="Dish Photo"
+                  />
+
+                  {errorMsg && (
+                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-medium text-red-400">
+                      {errorMsg}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons Footer */}
+                <div className="px-6 py-4 border-t border-white/8 bg-bg-secondary/95 backdrop-blur-md shrink-0 flex gap-3 sticky bottom-0 z-20">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    disabled={submitting}
+                    className="btn-ghost flex-1"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="btn-primary flex-1"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>{isEditing ? 'Save Changes' : 'Create Signature Dish'}</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

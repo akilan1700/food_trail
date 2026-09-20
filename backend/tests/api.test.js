@@ -70,7 +70,6 @@ describe('FoodTrail API Integration Tests', () => {
         coordinates: [79.83, 11.93],
       },
       vibeTags: ['Pet-friendly', 'Outdoor garden'],
-      busyStatus: 'Plenty of Tables',
       rating: 4.5,
       createdBy: testUser._id,
     });
@@ -127,39 +126,6 @@ describe('FoodTrail API Integration Tests', () => {
     expect(listData(resNonMatching.body).length).toBe(0);
   });
 
-  test('PATCH /api/restaurants/:id/busy-status requires auth', async () => {
-    const res = await request(app)
-      .patch(`/api/restaurants/${sampleRestaurant._id}/busy-status`)
-      .send({ busyStatus: 'Filling Up' });
-    expect(res.statusCode).toBe(401);
-  });
-
-  test('PATCH /api/restaurants/:id/busy-status works for any authenticated user', async () => {
-    const other = new User({
-      email: 'other@foodtrail.com',
-      name: 'Other User',
-      mpin: '654321',
-    });
-    await other.save();
-    const otherToken = jwt.sign({ userId: other._id }, getJwtSecret(), { expiresIn: '1d' });
-
-    const res = await request(app)
-      .patch(`/api/restaurants/${sampleRestaurant._id}/busy-status`)
-      .set('Authorization', `Bearer ${otherToken}`)
-      .send({ busyStatus: 'Closed' });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body.busyStatus).toBe('Closed');
-  });
-
-  test('PATCH /api/restaurants/:id/busy-status should block invalid statuses', async () => {
-    const res = await request(app)
-      .patch(`/api/restaurants/${sampleRestaurant._id}/busy-status`)
-      .set('Authorization', `Bearer ${userToken}`)
-      .send({ busyStatus: 'Super Crowded' });
-
-    expect(res.statusCode).toBe(400);
-  });
 
   test('GET /api/trails should list trails', async () => {
     const res = await request(app).get('/api/trails');

@@ -18,7 +18,6 @@ export interface Restaurant {
     coordinates: number[]; // [longitude, latitude]
   };
   vibeTags: string[];
-  busyStatus: 'Plenty of Tables' | 'Filling Up' | '~15 Min Wait' | 'Closed';
   rating: number;
   reviewCount?: number;
   photoUrl?: string;
@@ -252,31 +251,6 @@ export async function getTrailDetails(id: string): Promise<Trail> {
   return apiRequest<Trail>(`/trails/${id}`);
 }
 
-/**
- * Update the simulated busy status of a restaurant.
- */
-export async function updateBusyStatus(restaurantId: string, newStatus: string): Promise<Restaurant> {
-  if (typeof window !== 'undefined' && !navigator.onLine) {
-    enqueueOfflineMutation('UPDATE_BUSY_STATUS', { restaurantId, busyStatus: newStatus });
-    return {
-      _id: restaurantId,
-      name: 'Dining Spot',
-      area: '',
-      vibeTags: [],
-      busyStatus: newStatus as Restaurant['busyStatus'],
-      rating: 4.5,
-      isOfflinePending: true,
-    };
-  }
-
-  return apiRequest<Restaurant>(`/restaurants/${restaurantId}/busy-status`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ busyStatus: newStatus }),
-  });
-}
 
 /**
  * Fetch all restaurants.
@@ -471,7 +445,6 @@ export async function createRestaurant(restaurantData: {
         coordinates: restaurantData.coordinates,
       },
       vibeTags: restaurantData.vibeTags || [],
-      busyStatus: 'Plenty of Tables',
       rating: 5.0,
       reviewCount: 0,
       photoUrl: restaurantData.photoUrl,
@@ -518,7 +491,6 @@ export async function createDish(dishData: {
         name: 'Spot',
         area: 'Nearby',
         vibeTags: [],
-        busyStatus: 'Plenty of Tables',
         rating: 5,
       },
       rating: 5,
@@ -724,7 +696,6 @@ export async function updateMySpot(
     photoUrl?: string;
     vibeTags?: string[];
     coordinates?: number[];
-    busyStatus?: string;
   }
 ): Promise<Restaurant> {
   return apiRequest<Restaurant>(`/restaurants/${id}`, {
@@ -834,10 +805,6 @@ export async function executeQueuedMutation(item: OfflineMutationItem): Promise<
       return completeWalk((item.payload as { trailId?: string })?.trailId);
     case 'CREATE_TRAIL':
       return createTrail(item.payload as Partial<Trail>);
-    case 'UPDATE_BUSY_STATUS': {
-      const p = item.payload as { restaurantId: string; busyStatus: string };
-      return updateBusyStatus(p.restaurantId, p.busyStatus);
-    }
     default:
       throw new Error(`Unknown mutation type: ${item.type}`);
   }

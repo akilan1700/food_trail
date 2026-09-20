@@ -49,7 +49,7 @@ Updated: 2026-09-16
 | 📍 | **Add spot** | Pin new food spots with photos and details |
 | 📤 | **Share** | Share trails and trips (WhatsApp-friendly links) |
 | 📱 | **PWA** | Installable, offline-aware Progressive Web App |
-| 🛡️ | **Admin panel** | Moderate spots, dishes, trails, and users |
+| 🛡️ | **Admin panel** | Moderate spots, dishes, trails, users & auto-resolve spot locations via Google Maps links |
 
 ---
 
@@ -222,8 +222,8 @@ npm run dev
 | Rule | Detail |
 |------|--------|
 | Sessions | HttpOnly cookies (`token` / `admin_token`) |
-| Mutations | Create spot/dish/trail, upload, busy/photo updates require auth |
-| Ownership | Spot photo / busy / update / delete → **owner or admin** |
+| Mutations | Create spot/dish/trail, upload, photo updates require auth |
+| Ownership | Spot photo / update / delete → **owner or admin** |
 | Admins | Not auto-seeded — create manually in MongoDB ([DEPLOYMENT.md](./DEPLOYMENT.md)) |
 
 ---

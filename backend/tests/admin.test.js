@@ -76,7 +76,6 @@ describe('Admin Authentication & Management API Tests', () => {
         coordinates: [79.833, 11.933],
       },
       vibeTags: ['Cozy', 'Aesthetic'],
-      busyStatus: 'Plenty of Tables',
       rating: 4.8,
     });
     await sampleRestaurant.save();
@@ -204,12 +203,12 @@ describe('Admin Authentication & Management API Tests', () => {
       .put(`/api/admin/restaurants/${sampleRestaurant._id}`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        busyStatus: 'Filling Up',
+        description: 'Updated cozy cafe ambience',
         rating: 4.9,
       });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.busyStatus).toBe('Filling Up');
+    expect(res.body.description).toBe('Updated cozy cafe ambience');
     expect(res.body.rating).toBe(4.9);
   });
 

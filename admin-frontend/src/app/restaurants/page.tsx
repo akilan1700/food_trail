@@ -1,5 +1,5 @@
 // File: src/app/restaurants/page.tsx
-// Description: Admin management view for browsing, registering, updating, and deleting dining spots with live busy statuses.
+// Description: Admin management view for browsing, registering, updating, and deleting dining spots.
 // Author: Akilan M
 // Created: 2026-09-10T11:28:25+05:30
 
@@ -16,6 +16,8 @@ import {
   formatPhotoUrl,
 } from '../../services/api';
 import PhotoUpload from '../../components/PhotoUpload';
+import GoogleMapsLocationInput from '../../components/GoogleMapsLocationInput';
+import ModalPortal from '../../components/ModalPortal';
 import {
   Store,
   Search,
@@ -28,8 +30,6 @@ import {
   Loader2,
   Star,
 } from 'lucide-react';
-
-const BUSY_STATUSES = ['Plenty of Tables', 'Filling Up', '~15 Min Wait', 'Closed'] as const;
 
 export default function AdminRestaurantsPage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -47,11 +47,9 @@ export default function AdminRestaurantsPage() {
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
   const [area, setArea] = useState('White Town');
-  const [customArea, setCustomArea] = useState('');
-  const [longitude, setLongitude] = useState('79.8335');
-  const [latitude, setLatitude] = useState('11.9324');
+  const [longitude, setLongitude] = useState('');
+  const [latitude, setLatitude] = useState('');
   const [vibeTagsStr, setVibeTagsStr] = useState('Cozy, Aesthetic, Great Coffee');
-  const [busyStatus, setBusyStatus] = useState<Restaurant['busyStatus']>('Plenty of Tables');
   const [photoUrl, setPhotoUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -113,11 +111,9 @@ export default function AdminRestaurantsPage() {
     setDescription('');
     setAddress('');
     setArea('White Town');
-    setCustomArea('');
-    setLongitude('79.8335');
-    setLatitude('11.9324');
+    setLongitude('');
+    setLatitude('');
     setVibeTagsStr('Cozy, Aesthetic, Great Coffee');
-    setBusyStatus('Plenty of Tables');
     setPhotoUrl('');
     setErrorMsg('');
     setModalOpen(true);
@@ -129,13 +125,11 @@ export default function AdminRestaurantsPage() {
     setName(rest.name);
     setDescription(rest.description || '');
     setAddress(rest.address || '');
-    setArea(rest.area);
-    setCustomArea('');
+    setArea(rest.area || '');
     const coords = rest.location?.coordinates || [79.8335, 11.9324];
     setLongitude(String(coords[0]));
     setLatitude(String(coords[1]));
     setVibeTagsStr(rest.vibeTags ? rest.vibeTags.join(', ') : '');
-    setBusyStatus(rest.busyStatus);
     setPhotoUrl(rest.photoUrl || '');
     setErrorMsg('');
     setModalOpen(true);
@@ -150,9 +144,14 @@ export default function AdminRestaurantsPage() {
       return;
     }
 
-    const finalArea = area === 'Other' ? customArea.trim() : area.trim();
+    const finalArea = area.trim();
     if (!finalArea) {
-      setErrorMsg('Area is required.');
+      setErrorMsg('Area / Neighborhood is required.');
+      return;
+    }
+
+    if (!latitude.trim() || !longitude.trim()) {
+      setErrorMsg('Please paste a Google Maps link or enter coordinates to locate this spot.');
       return;
     }
 
@@ -178,7 +177,6 @@ export default function AdminRestaurantsPage() {
           area: finalArea,
           coordinates: [lng, lat],
           vibeTags,
-          busyStatus,
           photoUrl,
         });
       } else {
@@ -189,7 +187,6 @@ export default function AdminRestaurantsPage() {
           area: finalArea,
           coordinates: [lng, lat],
           vibeTags,
-          busyStatus,
           photoUrl,
         });
       }
@@ -202,17 +199,6 @@ export default function AdminRestaurantsPage() {
       setErrorMsg(message);
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleQuickBusyChange = async (restId: string, newStatus: Restaurant['busyStatus']) => {
-    try {
-      await updateAdminRestaurant(restId, { busyStatus: newStatus });
-      setRestaurants((prev) =>
-        prev.map((r) => (r._id === restId ? { ...r, busyStatus: newStatus } : r))
-      );
-    } catch (err) {
-      console.error('Failed to update busy status:', err);
     }
   };
 
@@ -309,7 +295,6 @@ export default function AdminRestaurantsPage() {
                   <th className="pb-3 px-3">Area & Location</th>
                   <th className="pb-3 px-3">Vibes</th>
                   <th className="pb-3 px-3">Dishes</th>
-                  <th className="pb-3 px-3">Live Busy Status</th>
                   <th className="pb-3 px-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -374,28 +359,6 @@ export default function AdminRestaurantsPage() {
                       </div>
                     </td>
 
-                    <td className="py-4 px-3">
-                      <select
-                        value={rest.busyStatus}
-                        onChange={(e) =>
-                          handleQuickBusyChange(rest._id, e.target.value as Restaurant['busyStatus'])
-                        }
-                        className={`px-2.5 py-1 rounded-full text-[0.65rem] font-bold border focus:outline-none cursor-pointer ${
-                          rest.busyStatus === 'Plenty of Tables'
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                            : rest.busyStatus === 'Filling Up'
-                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                            : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                        }`}
-                      >
-                        {BUSY_STATUSES.map((status) => (
-                          <option key={status} value={status} className="bg-bg-secondary text-text-primary">
-                            {status}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-
                     <td className="py-4 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <Link
@@ -438,209 +401,181 @@ export default function AdminRestaurantsPage() {
 
       {/* Create / Edit Restaurant Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-lg bg-bg-secondary border border-white/10 rounded-2xl glass-panel shadow-2xl overflow-hidden animate-fade-in max-h-[90vh] flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
-              <div>
-                <h3 className="text-base font-bold text-text-primary">
-                  {isEditing ? 'Edit Dining Spot' : 'Register New Dining Spot'}
-                </h3>
-                <p className="text-xs text-text-secondary">
-                  {isEditing ? `Modifying spot details for ${name}` : 'Add a verified dining spot to the platform'}
-                </p>
-              </div>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-white/5 transition-all cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
-              <div>
-                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                  Spot Name <span className="text-accent">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Coromandel Cafe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <ModalPortal>
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm p-4 sm:p-6 flex min-h-screen items-center justify-center animate-fade-in">
+            <div className="relative w-full max-w-3xl bg-bg-secondary border border-white/10 rounded-2xl glass-panel shadow-2xl overflow-hidden animate-fade-in my-auto flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3.5rem)]">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 bg-bg-secondary/95 backdrop-blur-md shrink-0 sticky top-0 z-20">
                 <div>
-                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                    Area / Neighborhood <span className="text-accent">*</span>
-                  </label>
-                  <select
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
-                  >
-                    <option value="White Town">White Town</option>
-                    <option value="Heritage Town">Heritage Town</option>
-                    <option value="Beach Road">Beach Road</option>
-                    <option value="Auroville">Auroville</option>
-                    <option value="Indiranagar">Indiranagar</option>
-                    <option value="Koramangala">Koramangala</option>
-                    <option value="Other">Other (Custom Area)</option>
-                  </select>
+                  <h3 className="text-base font-bold text-text-primary">
+                    {isEditing ? 'Edit Dining Spot' : 'Register New Dining Spot'}
+                  </h3>
+                  <p className="text-xs text-text-secondary">
+                    {isEditing ? `Modifying spot details for ${name}` : 'Add a verified dining spot to the platform'}
+                  </p>
                 </div>
-
-                {area === 'Other' && (
-                  <div>
-                    <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                      Custom Area <span className="text-accent">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. MG Road"
-                      value={customArea}
-                      onChange={(e) => setCustomArea(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
-                    />
-                  </div>
-                )}
-
-                <div className={area !== 'Other' ? '' : 'sm:col-span-2'}>
-                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                    Live Busy Status
-                  </label>
-                  <select
-                    value={busyStatus}
-                    onChange={(e) => setBusyStatus(e.target.value as Restaurant['busyStatus'])}
-                    className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
-                  >
-                    {BUSY_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                  Physical Address
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 8 Rue Romain Rolland, White Town"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                    Longitude <span className="text-accent">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    placeholder="79.8335"
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                    Latitude <span className="text-accent">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    placeholder="11.9324"
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                  Vibe Tags (Comma Separated)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Pet-friendly, Outdoor garden, Aesthetic"
-                  value={vibeTagsStr}
-                  onChange={(e) => setVibeTagsStr(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
-                  Description
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Short overview of vibe, specialty coffee, ambience..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3.5 py-2 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent resize-none"
-                />
-              </div>
-
-              {/* Photo Upload */}
-              <PhotoUpload
-                folder="spots"
-                value={photoUrl}
-                onUploadSuccess={(url) => setPhotoUrl(url)}
-                onClear={() => setPhotoUrl('')}
-                label="Spot Cover Photo"
-              />
-
-              {errorMsg && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-medium text-red-400">
-                  {errorMsg}
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  disabled={submitting}
-                  className="btn-ghost flex-1"
+                  className="p-1.5 rounded-full text-text-muted hover:text-text-primary hover:bg-white/5 transition-all cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn-primary flex-1"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>{isEditing ? 'Save Changes' : 'Create Spot'}</span>
-                  )}
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Modal Form */}
+              <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                <div className="p-6 space-y-4 overflow-y-auto overscroll-contain flex-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Spot Name */}
+                    <div>
+                      <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                        Spot Name <span className="text-accent">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Coromandel Cafe"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
+                      />
+                    </div>
+
+                    {/* Physical Address */}
+                    <div>
+                      <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                        Physical Address
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 8 Rue Romain Rolland, White Town"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
+                      />
+                    </div>
+
+                    {/* Area / Neighborhood Text Box */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                        Area / Neighborhood <span className="text-accent">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        list="area-suggestions"
+                        placeholder="e.g. White Town, Heritage Town, Indiranagar, MG Road"
+                        value={area}
+                        onChange={(e) => setArea(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent placeholder:text-text-muted/60"
+                      />
+                      <datalist id="area-suggestions">
+                        <option value="White Town" />
+                        <option value="Heritage Town" />
+                        <option value="Beach Road" />
+                        <option value="Auroville" />
+                        <option value="Indiranagar" />
+                        <option value="Koramangala" />
+                        {uniqueAreas.map((a) => (
+                          <option key={a} value={a} />
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  {/* Google Maps Location Parser & Visual Preview (Full Width) */}
+                  <GoogleMapsLocationInput
+                    latitude={latitude}
+                    longitude={longitude}
+                    onChangeCoordinates={(lat, lng) => {
+                      setLatitude(lat);
+                      setLongitude(lng);
+                    }}
+                    currentSpotName={name}
+                    currentArea={area}
+                    onSuggestName={(suggested) => {
+                      if (!name.trim()) {
+                        setName(suggested);
+                      }
+                    }}
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Vibe Tags */}
+                    <div>
+                      <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                        Vibe Tags (Comma Separated)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Pet-friendly, Outdoor garden, Aesthetic"
+                        value={vibeTagsStr}
+                        onChange={(e) => setVibeTagsStr(e.target.value)}
+                        className="w-full px-3.5 py-2.5 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                        Description
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Short overview of vibe, specialty coffee, ambience..."
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-bg-tertiary/60 border border-white/10 rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Photo Upload */}
+                  <PhotoUpload
+                    folder="spots"
+                    value={photoUrl}
+                    onUploadSuccess={(url) => setPhotoUrl(url)}
+                    onClear={() => setPhotoUrl('')}
+                    label="Spot Cover Photo"
+                  />
+
+                  {errorMsg && (
+                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-medium text-red-400">
+                      {errorMsg}
+                    </div>
+                  )}
+                </div>
+
+                {/* Sticky Actions Footer */}
+                <div className="px-6 py-4 border-t border-white/8 bg-bg-secondary/95 backdrop-blur-md shrink-0 flex gap-3 sticky bottom-0 z-20">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    disabled={submitting}
+                    className="btn-ghost flex-1"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="btn-primary flex-1"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>{isEditing ? 'Save Changes' : 'Create Spot'}</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

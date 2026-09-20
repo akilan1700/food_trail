@@ -17,6 +17,7 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 const { getJwtSecret } = require('../utils/jwtSecret');
 const { parsePagination, sendListResponse } = require('../utils/pagination');
 const { recalculateRating } = require('../services/reviewService');
+const { resolveGoogleMapsUrl } = require('../services/googleMapsResolver');
 
 const router = express.Router();
 const ADMIN_SESSION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -188,13 +189,32 @@ router.get('/restaurants', adminMiddleware, async (req, res, next) => {
 });
 
 /**
+ * @route   POST /api/admin/resolve-maps-url
+ * @desc    Resolve Google Maps link or coordinates into verified lat/long and place metadata
+ * @access  Admin Private
+ */
+router.post('/resolve-maps-url', adminMiddleware, async (req, res, next) => {
+  try {
+    const { url } = req.body;
+    if (!url || typeof url !== 'string' || !url.trim()) {
+      return res.status(400).json({ error: { message: 'Google Maps URL or coordinates string is required.' } });
+    }
+
+    const resolved = await resolveGoogleMapsUrl(url.trim());
+    res.status(200).json(resolved);
+  } catch (error) {
+    res.status(400).json({ error: { message: error.message || 'Failed to resolve Google Maps URL.' } });
+  }
+});
+
+/**
  * @route   POST /api/admin/restaurants
  * @desc    Create a new restaurant spot from admin panel
  * @access  Admin Private
  */
 router.post('/restaurants', adminMiddleware, async (req, res, next) => {
   try {
-    const { name, description, address, area, coordinates, vibeTags, photoUrl, busyStatus, rating } = req.body;
+    const { name, description, address, area, coordinates, vibeTags, photoUrl, rating } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: { message: 'Restaurant name is required.' } });
@@ -224,7 +244,6 @@ router.post('/restaurants', adminMiddleware, async (req, res, next) => {
       },
       vibeTags: Array.isArray(vibeTags) ? vibeTags : [],
       photoUrl: photoUrl || '',
-      busyStatus: busyStatus || 'Plenty of Tables',
       rating: rating ? Number(rating) : 0,
     });
 
@@ -257,10 +276,6 @@ router.put('/restaurants/:id', adminMiddleware, async (req, res, next) => {
         };
       }
       delete updateData.coordinates;
-    }
-
-    if (updateData.busyStatus) {
-      updateData.busyStatusLastUpdated = new Date();
     }
 
     const restaurant = await Restaurant.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });

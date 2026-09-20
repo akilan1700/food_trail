@@ -27,20 +27,23 @@ export default function AdminReviewsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const loadReviews = async () => {
-    try {
-      setLoading(true);
-      const data = await getAdminReviews();
-      setReviews(data);
-    } catch (err) {
-      console.error('Failed to fetch reviews:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadReviews();
+    let isMounted = true;
+    getAdminReviews()
+      .then((data) => {
+        if (isMounted) {
+          setReviews(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch reviews:', err);
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filtered = useMemo(() => {

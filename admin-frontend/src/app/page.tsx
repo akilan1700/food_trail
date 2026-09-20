@@ -204,7 +204,6 @@ export default function AdminDashboardPage() {
                 <th className="pb-3 px-3">Area</th>
                 <th className="pb-3 px-3">Dishes</th>
                 <th className="pb-3 px-3">Signature</th>
-                <th className="pb-3 px-3">Busy Status</th>
                 <th className="pb-3 px-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -238,19 +237,6 @@ export default function AdminDashboardPage() {
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20 text-xs">
                       <Star className="w-3 h-3 fill-amber-400 text-amber-400 shrink-0" />
                       <span>{rest.signatureDishes || 0}</span>
-                    </span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[0.65rem] font-semibold ${
-                        rest.busyStatus === 'Plenty of Tables'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : rest.busyStatus === 'Filling Up'
-                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      }`}
-                    >
-                      {rest.busyStatus}
                     </span>
                   </td>
                   <td className="py-3 px-3 text-right">

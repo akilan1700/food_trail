@@ -1,5 +1,5 @@
 // File: src/models/Restaurant.js
-// Description: Restaurant Mongoose schema representing dining spots, their coordinates, vibes, and busy status.
+// Description: Restaurant Mongoose schema representing dining spots, their coordinates, and vibes.
 // Author: Akilan M
 // Created: 2026-08-11T17:37:11+05:30
 
@@ -38,15 +38,6 @@ const restaurantSchema = new mongoose.Schema({
   vibeTags: {
     type: [String],
     default: [],
-  },
-  busyStatus: {
-    type: String,
-    enum: ['Plenty of Tables', 'Filling Up', '~15 Min Wait', 'Closed'],
-    default: 'Plenty of Tables',
-  },
-  busyStatusLastUpdated: {
-    type: Date,
-    default: Date.now,
   },
   rating: {
     type: Number,

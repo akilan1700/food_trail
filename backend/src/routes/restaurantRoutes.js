@@ -94,40 +94,6 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-/**
- * @route   PATCH /api/restaurants/:id/busy-status
- * @desc    Update busy status (any authenticated user or admin — community live signal)
- * @access  Private
- */
-router.patch('/:id/busy-status', authOrAdminMiddleware, async (req, res, next) => {
-  try {
-    const { busyStatus } = req.body;
-    const validStatuses = ['Plenty of Tables', 'Filling Up', '~15 Min Wait', 'Closed'];
-
-    if (!busyStatus || !validStatuses.includes(busyStatus)) {
-      return res.status(400).json({
-        error: { message: `Invalid busyStatus. Must be one of: ${validStatuses.join(', ')}` },
-      });
-    }
-
-    const restaurant = await Restaurant.findByIdAndUpdate(
-      req.params.id,
-      {
-        busyStatus,
-        busyStatusLastUpdated: new Date(),
-      },
-      { new: true }
-    );
-
-    if (!restaurant) {
-      return res.status(404).json({ error: { message: 'Restaurant not found' } });
-    }
-
-    res.json(restaurant);
-  } catch (error) {
-    next(error);
-  }
-});
 
 /**
  * @route   PATCH /api/restaurants/:id/photo
@@ -225,21 +191,13 @@ router.put('/:id', authOrAdminMiddleware, async (req, res, next) => {
       return res.status(403).json({ error: { message: 'Not allowed to update this restaurant' } });
     }
 
-    const { name, description, address, area, coordinates, vibeTags, photoUrl, busyStatus } = req.body;
+    const { name, description, address, area, coordinates, vibeTags, photoUrl } = req.body;
     if (name !== undefined) restaurant.name = String(name).trim();
     if (description !== undefined) restaurant.description = description;
     if (address !== undefined) restaurant.address = address;
     if (area !== undefined) restaurant.area = String(area).trim();
     if (photoUrl !== undefined) restaurant.photoUrl = photoUrl;
     if (Array.isArray(vibeTags)) restaurant.vibeTags = vibeTags;
-    if (busyStatus !== undefined) {
-      const validStatuses = ['Plenty of Tables', 'Filling Up', '~15 Min Wait', 'Closed'];
-      if (!validStatuses.includes(busyStatus)) {
-        return res.status(400).json({ error: { message: 'Invalid busyStatus' } });
-      }
-      restaurant.busyStatus = busyStatus;
-      restaurant.busyStatusLastUpdated = new Date();
-    }
     if (coordinates && Array.isArray(coordinates) && coordinates.length === 2) {
       const [longitude, latitude] = coordinates.map(Number);
       if (!isNaN(longitude) && !isNaN(latitude)) {

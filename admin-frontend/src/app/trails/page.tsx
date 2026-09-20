@@ -12,6 +12,7 @@ import {
   deleteAdminTrail,
   AdminTrail,
 } from '../../services/api';
+import ModalPortal from '../../components/ModalPortal';
 import { Route, Search, Trash2, Edit2, X, Loader2, MapPin } from 'lucide-react';
 
 /**
@@ -42,7 +43,22 @@ export default function AdminTrailsPage() {
   };
 
   useEffect(() => {
-    loadTrails();
+    let isMounted = true;
+    getAdminTrails()
+      .then((data) => {
+        if (isMounted) {
+          setTrails(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch trails:', err);
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -185,50 +201,52 @@ export default function AdminTrailsPage() {
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl glass-panel border border-white/10 p-6 space-y-4 relative">
-            <button
-              type="button"
-              onClick={() => setEditing(null)}
-              className="absolute top-3 right-3 text-text-muted hover:text-text-primary cursor-pointer bg-transparent border-none"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <h3 className="text-lg font-bold text-text-primary">Edit Trail</h3>
-            {errorMsg && <p className="text-sm text-red-400">{errorMsg}</p>}
-            <form onSubmit={handleSave} className="space-y-3">
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="Name"
-                required
-                className="w-full bg-bg-tertiary/60 border border-white/8 rounded-lg p-3 text-sm text-text-primary focus:outline-none focus:border-accent"
-              />
-              <input
-                type="text"
-                value={editArea}
-                onChange={(e) => setEditArea(e.target.value)}
-                placeholder="Area"
-                className="w-full bg-bg-tertiary/60 border border-white/8 rounded-lg p-3 text-sm text-text-primary focus:outline-none focus:border-accent"
-              />
-              <textarea
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="Description"
-                rows={3}
-                className="w-full bg-bg-tertiary/60 border border-white/8 rounded-lg p-3 text-sm text-text-primary focus:outline-none focus:border-accent resize-none"
-              />
+        <ModalPortal>
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm p-4 sm:p-6 flex min-h-screen items-center justify-center animate-fade-in">
+            <div className="relative w-full max-w-md rounded-2xl glass-panel border border-white/10 p-6 space-y-4 my-auto bg-bg-secondary">
               <button
-                type="submit"
-                disabled={saving}
-                className="btn-primary w-full disabled:opacity-50"
+                type="button"
+                onClick={() => setEditing(null)}
+                className="absolute top-4 right-4 text-text-muted hover:text-text-primary cursor-pointer p-1 rounded-full hover:bg-white/5 transition-all"
               >
-                {saving ? 'Saving…' : 'Save Changes'}
+                <X className="w-5 h-5" />
               </button>
-            </form>
+              <h3 className="text-lg font-bold text-text-primary">Edit Trail</h3>
+              {errorMsg && <p className="text-sm text-red-400">{errorMsg}</p>}
+              <form onSubmit={handleSave} className="space-y-3">
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Name"
+                  required
+                  className="w-full bg-bg-tertiary/60 border border-white/8 rounded-lg p-3 text-sm text-text-primary focus:outline-none focus:border-accent"
+                />
+                <input
+                  type="text"
+                  value={editArea}
+                  onChange={(e) => setEditArea(e.target.value)}
+                  placeholder="Area"
+                  className="w-full bg-bg-tertiary/60 border border-white/8 rounded-lg p-3 text-sm text-text-primary focus:outline-none focus:border-accent"
+                />
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Description"
+                  rows={3}
+                  className="w-full bg-bg-tertiary/60 border border-white/8 rounded-lg p-3 text-sm text-text-primary focus:outline-none focus:border-accent resize-none"
+                />
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-primary w-full disabled:opacity-50"
+                >
+                  {saving ? 'Saving…' : 'Save Changes'}
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

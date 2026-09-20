@@ -23,12 +23,19 @@ export interface Restaurant {
     coordinates: number[]; // [longitude, latitude]
   };
   vibeTags: string[];
-  busyStatus: 'Plenty of Tables' | 'Filling Up' | '~15 Min Wait' | 'Closed';
   rating: number;
   photoUrl?: string;
   totalDishes?: number;
   signatureDishes?: number;
   createdAt?: string;
+}
+
+export interface ResolvedMapsData {
+  latitude: number;
+  longitude: number;
+  placeName?: string;
+  address?: string;
+  resolvedUrl: string;
 }
 
 export interface Dish {
@@ -225,13 +232,24 @@ export async function createAdminRestaurant(data: {
   coordinates: number[];
   vibeTags?: string[];
   photoUrl?: string;
-  busyStatus?: string;
   rating?: number;
 }): Promise<Restaurant> {
   return adminFetch<Restaurant>('/admin/restaurants', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Resolves a Google Maps link or coordinates string via backend API with SSRF protection.
+ * @param url - Google Maps link or raw coordinates string.
+ */
+export async function resolveGoogleMapsUrl(url: string): Promise<ResolvedMapsData> {
+  return adminFetch<ResolvedMapsData>('/admin/resolve-maps-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
   });
 }
 

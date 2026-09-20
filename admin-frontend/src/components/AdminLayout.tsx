@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -37,20 +37,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { admin, logout, loading } = useAdminAuth();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(SIDEBAR_STORAGE_KEY);
-      if (saved === '1') setCollapsed(true);
-    } catch {
-      // ignore storage errors
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1';
+      } catch {
+        return false;
+      }
     }
-  }, []);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+    return false;
+  });
 
   /**
    * Toggles desktop sidebar collapse and persists preference.

@@ -1,15 +1,5 @@
 {
-  "name": "admin-frontend",
-  "version": "0.1.0",
-  "private": true,
-  "license": "ISC",
   "author": "Akilan M",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "lucide-react": "^1.31.0",
@@ -26,5 +16,26 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "typescript": "^5"
-  }
+  },
+  "license": "ISC",
+  "name": "admin-frontend",
+  "overrides": {
+    "@eslint-community/eslint-utils": "4.10.1",
+    "ansi-styles": "5.2.0",
+    "eslint-visitor-keys": "5.0.1",
+    "glob-parent": "6.0.2",
+    "globals": "16.4.0",
+    "ignore": "7.0.9",
+    "json5": "2.2.3",
+    "minimatch": "10.2.6",
+    "picomatch": "4.0.7"
+  },
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "version": "0.1.0"
 }
